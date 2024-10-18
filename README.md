@@ -10,9 +10,9 @@
 
 ## Requirements
 
-- Kubernetes version: >= 1.17
+- Kubernetes version: >= 1.30
 - EKS environment with Security Groups for Pods enabled
-- kubectl: >= 1.18
+- kubectl: >= 1.31.1
 - AWS CLI configured with necessary permissions
 
 ## Installation
