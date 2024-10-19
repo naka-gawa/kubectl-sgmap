@@ -1,6 +1,6 @@
-# kubectl-view-podsg
+# kubectl-sg4pod
 
-`kubectl-view-podsg` is a custom kubectl plugin that displays the mapping of ENIs (Elastic Network Interfaces) and security groups assigned to pods in an EKS (Elastic Kubernetes Service) environment with Security Groups for Pods enabled. This plugin helps in auditing and managing pod-to-network associations to ensure security and compliance in Kubernetes clusters.
+`kubectl-sg4pod` is a custom kubectl plugin that displays the mapping of ENIs (Elastic Network Interfaces) and security groups assigned to pods in an EKS (Elastic Kubernetes Service) environment with Security Groups for Pods enabled. This plugin helps in auditing and managing pod-to-network associations to ensure security and compliance in Kubernetes clusters.
 
 ## Features
 
@@ -10,21 +10,21 @@
 
 ## Requirements
 
-- Kubernetes version: >= 1.17
+- Kubernetes version: >= 1.30
 - EKS environment with Security Groups for Pods enabled
-- kubectl: >= 1.18
+- kubectl: >= 1.30
 - AWS CLI configured with necessary permissions
 
 ## Installation
 
-To install `kubectl-view-podsg`, follow these steps:
+To install `kubectl-sg4pod`, follow these steps:
 
 ```bash
-git clone https://github.com/your-repo/kubectl-view-podsg.git
-cd kubectl-view-podsg
+git clone https://github.com/your-repo/kubectl-sg4pod.git
+cd kubectl-sg4pod
 make
-chmod +x kubectl-view-podsg
-mv kubectl-view-podsg /usr/local/bin/
+chmod +x kubectl-sg4pod
+mv kubectl-sg4pod /usr/local/bin/
 ```
 
 ## Usage
@@ -33,15 +33,15 @@ Once installed, you can use the plugin with the following command:
 This command will display a list of ENIs and security groups associated with each pod running in your EKS cluster.
 
 ```bash
-kubectl view-podsg
+kubectl sg4pod
 ```
 
 ### Example Output
 
 ```bash
 POD NAME          ENI ID            SECURITY GROUPS
-pod-1             eni-01234abcd      sg-01234abcd
-pod-2             eni-56789efgh      sg-56789efgh
+pod-1             eni-01234abcd      [sg-01234abcd]
+pod-2             eni-56789efgh      [sg-56789efgh]
 ```
 
 ## Contributing
