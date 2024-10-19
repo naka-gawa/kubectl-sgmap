@@ -1,7 +1,7 @@
-BINARY_NAME=kubectl-view-podsg
+BINARY_NAME=kubectl-sg4pod
 VERSION=dev
 REVISION=none
-LDFLAGS=-ldflags "-X 'github.com/naka-gawa/kubectl-view-podsg/cmd/subcommand.version=$(VERSION)' -X 'github.com/naka-gawa/kubectl-view-podsg/cmd/subcommand.revision=$(REVISION)'"
+LDFLAGS=-ldflags "-X 'github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand.version=$(VERSION)' -X 'github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand.revision=$(REVISION)'"
 
 .PHONY: all build test clean release
 
