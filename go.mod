@@ -1,4 +1,4 @@
-module github.com/naka-gawa/kubectl-view-podsg
+module github.com/naka-gawa/kubectl-sg4pod
 
 go 1.23.2
 
