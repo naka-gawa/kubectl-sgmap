@@ -22,9 +22,7 @@ To install `kubectl-sg4pod`, follow these steps:
 ```bash
 git clone https://github.com/your-repo/kubectl-sg4pod.git
 cd kubectl-sg4pod
-make
-chmod +x kubectl-sg4pod
-mv kubectl-sg4pod /usr/local/bin/
+make install
 ```
 
 ## Usage
@@ -33,15 +31,17 @@ Once installed, you can use the plugin with the following command:
 This command will display a list of ENIs and security groups associated with each pod running in your EKS cluster.
 
 ```bash
-kubectl sg4pod get -n [NameSpace]
+kubectl sg4pod get-pods -n [NameSpace]
 ```
 
 ### Example Output
 
 ```bash
-POD NAME          ENI ID            SECURITY GROUPS
-pod-1             eni-01234abcd      [sg-01234abcd]
-pod-2             eni-56789efgh      [sg-56789efgh]
+╰─ k sg4pod get-pods -n freeeops-rails
+POD NAME                                             IP ADDRESS       ENI ID                  SECURITY GROUP IDS
+xxxxx-123455678-12345                                192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
+xxxxx-123455678-12346                                192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
+~snip~
 ```
 
 ## Contributing
