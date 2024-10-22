@@ -37,7 +37,7 @@ kubectl sg4pod get-pods -n [NameSpace]
 ### Example Output
 
 ```bash
-╰─ k sg4pod get-pods -n freeeops-rails
+╰─ k sg4pod get-pods -n test
 POD NAME                                             IP ADDRESS       ENI ID                  SECURITY GROUP IDS
 xxxxx-123455678-12345                                192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
 xxxxx-123455678-12346                                192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
