@@ -5,7 +5,8 @@ LDFLAGS=-ldflags "-X 'github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand.version
 
 .PHONY: all build test clean release
 
-all: build
+install: build
+	sudo mv $(BINARY_NAME) /usr/local/bin
 
 build:
 	go build $(LDFLAGS) -o $(BINARY_NAME) -v ./cmd/main.go
