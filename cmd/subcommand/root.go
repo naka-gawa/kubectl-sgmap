@@ -23,5 +23,6 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(NewVersionCommand())
+	rootCmd.AddCommand(versionCmd())
+	rootCmd.AddCommand(getCmd())
 }
