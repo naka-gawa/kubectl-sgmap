@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
 )
 
 var version = "dev"
@@ -23,6 +24,6 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd())
-	rootCmd.AddCommand(getCmd())
+	rootCmd.AddCommand(VersionCmd())
+	rootCmd.AddCommand(NewCmdGetPod(genericiooptions.IOStreams{}))
 }

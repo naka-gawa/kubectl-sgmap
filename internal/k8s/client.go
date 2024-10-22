@@ -12,24 +12,8 @@ import (
 // DefaultKubeconfigPath is the default path to the kubeconfig file
 var defaultKubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-// Clientset is a wrapper around the Kubernetes clientset
-type Clientset struct {
-	Clientset *kubernetes.Clientset
-}
-
-// GetClientset is a function that returns a Kubernetes clientset,
-// which can be used to interact with a Kubernetes cluster. It handles the kubeconfig
-// resolution, allowing the client to connect to the cluster.
-//
-// GetClientset first checks if the KUBECONFIG environment variable is set.
-// If set, it uses the path provided by the environment variable to load the kubeconfig.
-// If the environment variable is not set, it defaults to using the standard kubeconfig location
-// at $HOME/.kube/config.
-//
-// The function ensures that the clientset is initialized correctly and returns an error
-// if there are any issues with the kubeconfig resolution or clientset creation.
-// This provides a safe way for the client to connect to the Kubernetes cluster with expected behavior.
-func GetClientset() (*Clientset, error) {
+// GetClientset returns a Kubernetes clientset, which can be used to interact with the Kubernetes cluster.
+func GetClientset() (*kubernetes.Clientset, error) {
 	kubeconfigPath := os.Getenv("KUBECONFIG")
 	if kubeconfigPath == "" {
 		kubeconfigPath = defaultKubeconfigPath
@@ -45,5 +29,5 @@ func GetClientset() (*Clientset, error) {
 		return nil, fmt.Errorf("failed to create clientset: %v", err)
 	}
 
-	return &Clientset{Clientset: clientset}, nil
+	return clientset, nil
 }
