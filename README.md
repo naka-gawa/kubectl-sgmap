@@ -20,7 +20,7 @@
 To install `kubectl-sg4pod`, follow these steps:
 
 ```bash
-git clone https://github.com/your-repo/kubectl-sg4pod.git
+git clone https://github.com/naka-gawa/kubectl-sg4pod.git
 cd kubectl-sg4pod
 make install
 ```
