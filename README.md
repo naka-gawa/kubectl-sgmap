@@ -33,7 +33,7 @@ Once installed, you can use the plugin with the following command:
 This command will display a list of ENIs and security groups associated with each pod running in your EKS cluster.
 
 ```bash
-kubectl sg4pod
+kubectl sg4pod get -n [NameSpace]
 ```
 
 ### Example Output
