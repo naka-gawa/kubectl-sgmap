@@ -1,9 +1,9 @@
 SHELL := /bin/bash
-INSTALL_DIR ?= /usr/local/bin
+INSTALL_DIR ?= /usr/bin
 PLUGIN_BIN ?= kubectl-sgmap
 PLUGIN_DEPENDENCIES := $(shell find . -name "*.go")
 # if you want to execute gotest with verbosity, set this flag to `true`.
-TEST_VERBOSE ?= true
+TEST_VERBOSE ?= false
 
 build: format test $(PLUGIN_BIN)
 
@@ -12,9 +12,9 @@ format:
 
 test:
 ifeq ($(TEST_VERBOSE), true)
-	go test -v ./... -count=1
+	go test -v ./...
 else
-	go test ./... -count=1
+	go test ./...
 endif
 
 $(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES) generate
