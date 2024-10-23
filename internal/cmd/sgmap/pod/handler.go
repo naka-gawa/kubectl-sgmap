@@ -68,7 +68,7 @@ func (o *options) Run() error {
 		return fmt.Errorf("Failed to create Kubernetes clientset: %v", err)
 	}
 
-	pods, err := clientset.CoreV1().Pods("step").List(context.TODO(), metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("Failed to list pods: %v", err)
 	}
