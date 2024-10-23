@@ -17,7 +17,7 @@ else
 	go test ./... -count=1
 endif
 
-$(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES) generate
+$(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES)
 	go build -o $(PLUGIN_BIN) ./cmd/$(PLUGIN_BIN)/main.go
 
 generate:
