@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	cmd "github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand"
+	cmd "github.com/naka-gawa/kubectl-sgmap/cmd/subcommand"
 )
 
 func TestRun(t *testing.T) {

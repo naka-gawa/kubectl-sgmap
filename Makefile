@@ -1,21 +1,27 @@
-BINARY_NAME=kubectl-sg4pod
-VERSION=dev
-REVISION=none
-LDFLAGS=-ldflags "-X 'github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand.version=$(VERSION)' -X 'github.com/naka-gawa/kubectl-sg4pod/cmd/subcommand.revision=$(REVISION)'"
+SHELL := /bin/bash
+INSTALL_DIR ?= /usr/local/bin
+PLUGIN_BIN ?= kubectl-sgmap
+PLUGIN_DEPENDENCIES := $(shell find . -name "*.go")
+# if you want to execute gotest with verbosity, set this flag to `true`.
+TEST_VERBOSE ?= true
 
-.PHONY: all build test clean release
+build: format test $(PLUGIN_BIN)
 
-install: build
-	sudo mv $(BINARY_NAME) /usr/local/bin
-
-build:
-	go build $(LDFLAGS) -o $(BINARY_NAME) -v ./cmd/main.go
+format:
+	go fmt ./...
 
 test:
+ifeq ($(TEST_VERBOSE), true)
 	go test -v ./... -count=1
+else
+	go test ./... -count=1
+endif
 
-clean:
-	rm -f $(BINARY_NAME)
+$(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES) generate
+	go build -o $(PLUGIN_BIN) ./cmd/$(PLUGIN_BIN)/main.go
 
-release:
-	goreleaser release --snapshot --skip-publish --rm-dist
+generate:
+	kubectl-plugin-builder generate
+
+install: $(PLUGIN_BIN)
+	mv $(PLUGIN_BIN) $(INSTALL_DIR)

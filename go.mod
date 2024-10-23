@@ -1,4 +1,4 @@
-module github.com/naka-gawa/kubectl-sg4pod
+module github.com/naka-gawa/kubectl-sgmap
 
 go 1.23.2
 

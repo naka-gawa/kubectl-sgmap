@@ -1,0 +1,27 @@
+license: MIT
+packageName: kubectl-sgmap
+root:
+  name: sgmap
+  year: 2024
+  author: naka-gawa
+  defPath: internal/cmd/sgmap
+  children:
+  # you can add the subcommands into it
+  # - name: subcmd
+  #   defPath: internal/cmd/sgmap/subcmd
+  #   year: 2021
+  #   author: you
+  #   description:
+  #     short: "short description"
+  #     long: "long description"
+  #   aliases:
+  #   - sc
+  #   flags:
+  #   - name: flag1
+  #     type: string
+  #     description: controls the subcmd's behavior
+  #   children:
+  #   - name: subsubcmd
+  #     year: 2024
+  #     author: naka-gawa
+  #     defPath: internal/cmd/sgmap/subcmd/subsubcmd

@@ -6,8 +6,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/naka-gawa/kubectl-sg4pod/internal/aws"
-	"github.com/naka-gawa/kubectl-sg4pod/internal/k8s"
+	"github.com/naka-gawa/kubectl-sgmap/internal/aws"
+	"github.com/naka-gawa/kubectl-sgmap/internal/k8s"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
