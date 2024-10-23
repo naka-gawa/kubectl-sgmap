@@ -22,13 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package sgmap
+package pod
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/naka-gawa/kubectl-sgmap/internal/aws"
 	"github.com/naka-gawa/kubectl-sgmap/internal/cmd"
+	"github.com/naka-gawa/kubectl-sgmap/internal/k8s"
+	"github.com/naka-gawa/kubectl-sgmap/internal/lib"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -47,7 +52,7 @@ type options struct {
 func (o *options) Complete(cmd *cobra.Command, args []string) error {
 	o.cmd = cmd
 	o.args = args
-	o.outputMode = sgmapOutputModeFlag
+	o.outputMode = podOutputModeFlag
 	return nil
 }
 
@@ -58,12 +63,36 @@ func (o *options) Validate() error {
 
 // Run implements CLINodeOptions interface.
 func (o *options) Run() error {
+	clientset, err := k8s.GetClientset()
+	if err != nil {
+		return fmt.Errorf("Failed to create Kubernetes clientset: %v", err)
+	}
+
+	pods, err := clientset.CoreV1().Pods("step").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to list pods: %v", err)
+	}
+	podInfos := []lib.PodInfo{}
+	for _, pod := range pods.Items {
+		eniID, sgIDs, err := aws.GetENIForIPAddress(pod.Status.PodIP)
+		if err != nil {
+			eniID = "ENI not found"
+		}
+		podInfos = append(podInfos, lib.PodInfo{
+			PODNAME:          pod.Name,
+			IPADDRESS:        pod.Status.PodIP,
+			ENIID:            eniID,
+			SECURITYGROUPIDS: sgIDs,
+		})
+	}
+
 	switch o.outputMode {
-	// case cmd.OutputModeJSON:
-	// case cmd.OutputModeYAML:
+	case cmd.OutputModeJSON:
+		return lib.OutputJSON(podInfos, o.streams.Out)
+	case cmd.OutputModeYAML:
+		return lib.OutputYAML(podInfos, o.streams.Out)
 	case cmd.OutputModeNormal:
-		_, err := fmt.Fprintf(o.streams.Out, "%s\n", o.cmd.Use)
-		return err
+		return lib.OutputTable(podInfos, o.streams.Out)
 	}
 
 	return fmt.Errorf("unsupported output format '%s' found", o.outputMode)

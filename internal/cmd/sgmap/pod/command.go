@@ -22,28 +22,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package sgmap
+package pod
 
 import (
 	"github.com/spf13/cobra"
 
 	"github.com/naka-gawa/kubectl-sgmap/internal/cmd"
-	"github.com/naka-gawa/kubectl-sgmap/internal/cmd/sgmap/pod"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var (
-	// sgmapOutputModeFlag provides
+	// podOutputModeFlag provides
 	// user-passed option to options.
-	sgmapOutputModeFlag string
+	podOutputModeFlag string
 )
 
 // WARNING: don't rename this function.
 func NewCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 	c := &cobra.Command{
-		Use: "sgmap",
+		Use: "pod",
 
 		Aliases: []string{},
+		Short:   "short description",
+		Long:    "this is a long description",
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o := &options{streams: streams}
@@ -67,13 +68,12 @@ func NewCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 
 // hangChildrenOnCommand enumerates command's children and attach them into it.
 func hangChildrenOnCommand(c *cobra.Command, streams *genericclioptions.IOStreams) {
-	c.AddCommand(pod.NewCommand(streams))
 }
 
 // defineCommandFlags declares primitive flags.
 func defineCommandFlags(c *cobra.Command) {
 	c.Flags().StringVarP(
-		&sgmapOutputModeFlag,
+		&podOutputModeFlag,
 		"output",
 		"o",
 		cmd.OutputModeNormal,
