@@ -18,7 +18,7 @@ else
 endif
 
 $(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES)
-	ls -la && go build -o $(PLUGIN_BIN) ./cmd/sgmap/main.go
+	go build -o $(PLUGIN_BIN) ./cmd/$(PLUGIN_BIN)/main.go
 
 generate:
 	kubectl-plugin-builder generate
