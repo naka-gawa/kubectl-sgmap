@@ -10,18 +10,30 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-// GetENIForIPAddress は、指定された IP アドレスに関連付けられた ENI 情報を取得します。
+// GetENIForIPAddress retrieves the Elastic Network Interface (ENI) ID and associated security group IDs for a given IP address.
+//
+// Parameters:
+//   - ipAddress: The IP address for which to find the associated ENI.
+//
+// Returns:
+//   - string: The ID of the ENI associated with the given IP address.
+//   - []string: A list of security group IDs associated with the ENI.
+//   - error: An error object if there was an issue retrieving the ENI information.
+//
+// The function uses the AWS SDK to load the default configuration and create an EC2 client.
+// It then calls the DescribeNetworkInterfaces API to find the ENI associated with the specified IP address.
+// If no ENI is found, an error is returned. Otherwise, the ENI ID and associated security group IDs are returned.
 func GetENIForIPAddress(ipAddress string) (string, []string, error) {
-	// AWS SDKの設定を読み込む
+	// Load AWS SDK configuration
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
-	// EC2 クライアントを作成
+	// Create EC2 client
 	client := ec2.NewFromConfig(cfg)
 
-	// EC2 の DescribeNetworkInterfaces API を呼び出し、指定された IP アドレスに関連する ENI を取得
+	// Call EC2 DescribeNetworkInterfaces API to get the ENI associated with the specified IP address
 	input := &ec2.DescribeNetworkInterfacesInput{
 		Filters: []types.Filter{
 			{
@@ -36,7 +48,7 @@ func GetENIForIPAddress(ipAddress string) (string, []string, error) {
 		return "", nil, fmt.Errorf("failed to describe network interfaces: %v", err)
 	}
 
-	// ENI の情報を返す
+	// Return ENI information
 	if len(result.NetworkInterfaces) == 0 {
 		return "", nil, fmt.Errorf("no ENI found for IP address: %s", ipAddress)
 	}
@@ -44,7 +56,7 @@ func GetENIForIPAddress(ipAddress string) (string, []string, error) {
 	eni := result.NetworkInterfaces[0]
 	eniID := *eni.NetworkInterfaceId
 
-	// セキュリティグループのIDリストを取得
+	// Get the list of security group IDs
 	var sgIDs []string
 	for _, sg := range eni.Groups {
 		sgIDs = append(sgIDs, *sg.GroupId)

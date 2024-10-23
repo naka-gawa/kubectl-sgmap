@@ -1,0 +1,23 @@
+packageName: kubectl-sgmap
+license: MIT
+root:
+    name: sgmap
+    year: 2024
+    author: naka-gawa
+    description:
+        short: ""
+        long: ""
+    aliases: []
+    flags: []
+    children:
+        - name: pod
+          year: 2024
+          author: you
+          description:
+            short: short description
+            long: this is a long description
+          aliases: []
+          flags: []
+          children: []
+          defPath: internal/cmd/sgmap/pod
+    defPath: internal/cmd/sgmap
