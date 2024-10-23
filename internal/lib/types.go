@@ -5,6 +5,15 @@ import (
 	"reflect"
 )
 
+// Test-specific struct to induce marshal error
+type InvalidPodInfo struct {
+	PODNAME          string
+	IPADDRESS        string
+	ENIID            string
+	SECURITYGROUPIDS []string
+	INVALIDFIELD     func()
+}
+
 type PodInfo struct {
 	PODNAME          string
 	IPADDRESS        string
