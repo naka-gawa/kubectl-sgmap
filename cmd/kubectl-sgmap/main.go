@@ -6,8 +6,14 @@ import (
 	"github.com/naka-gawa/kubectl-sgmap/internal/cmd/sgmap"
 	"os"
 
+	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
+
+// These variables will be set at build time.
+// local build: go build -ldflags "-X main.version=0.0.1 -X main.revision=xxxxxx"
+var version string
+var revision string
 
 func main() {
 	streams := genericclioptions.IOStreams{
@@ -16,8 +22,22 @@ func main() {
 		ErrOut: os.Stderr,
 	}
 
-	if err := sgmap.NewCommand(&streams).Execute(); err != nil {
+	rootCmd := &cobra.Command{Use: "kubectl-sgmap"}
+	rootCmd.AddCommand(sgmap.NewCommand(&streams))
+	rootCmd.AddCommand(NewCmdVersion())
+
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %+v\n", err)
 		os.Exit(1)
+	}
+}
+
+func NewCmdVersion() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of kubectl-sgmap",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("kubectl-sgmap version %s, revision %s\n", version, revision)
+		},
 	}
 }
