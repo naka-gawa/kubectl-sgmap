@@ -17,16 +17,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       # Bump version on merging Pull Requests with specific labels. (bump:major,bump:minor,bump:patch)
       - id: bumpr
-        if: '!startsWith(github.ref, "refs/tags/")'
+        if: "!startsWith(github.ref, 'refs/tags/')"
         uses: haya14busa/action-bumpr@v1
+
       # Update corresponding major and minor tag. e.g. Update v1 and v1.2 when releasing v1.2.3
       - uses: haya14busa/action-update-semver@v1
-        if: !steps.bumpr.outputs.skip
+        if: "!steps.bumpr.outputs.skip"
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.bumpr.outputs.next_version }}
+
       # Get tag name.
       - id: tag
         uses: haya14busa/action-cond@v1
@@ -34,9 +37,10 @@ jobs:
           cond: "${{ startsWith(github.ref, 'refs/tags/') }}"
           if_true: ${{ github.ref }}
           if_false: ${{ steps.bumpr.outputs.next_version }}
+
       # Create release.
       - uses: actions/create-release@v1
-        if: steps.tag.outputs.value != ''
+        if: "steps.tag.outputs.value != ''"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -46,10 +50,10 @@ jobs:
           draft: false
           prerelease: false
       - name: Set up Go
-        if: steps.tag.outputs.value != ''
+        if: "steps.tag.outputs.value != ''"
         uses: actions/setup-go@v5
       - name: Run GoReleaser
-        if: steps.tag.outputs.value != ''
+        if: "steps.tag.outputs.value != ''"
         uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
@@ -57,6 +61,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release-check:
     if: github.event.action == 'labeled'
     runs-on: ubuntu-latest
