@@ -22,9 +22,11 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # リリース
-      - uses: goreleaser/goreleaser-action@v4
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v4
         with:
-          args: release --rm-dist
+          distribution: goreleaser
+          version: latest
+          args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 自動で生成されるシークレット
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
