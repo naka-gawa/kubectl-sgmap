@@ -35,9 +35,8 @@ jobs:
       - uses: haya14busa/action-update-semver@v1
         if: "!steps.bumpr.outputs.skip"
         with:
+          github_token: ${{ steps.generate_token.outputs.token }}
           tag: ${{ steps.bumpr.outputs.next_version }}
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
 
       # Get tag name.
       - id: tag
