@@ -1,27 +1,55 @@
 name: release
 
 on:
+  pull_request:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: lint
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          level: warning
+
+  determine_release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      will_release: ${{ steps.determine_release.outputs.new_release_published }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: determine_release
+        uses: cycjimmy/semantic-release-action@v3.0.0
+        with:
+          dry_run: true
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # これがないとリリースを作成できない
+      contents: write
+    needs:
+      - lint
+      - determine_release
+    if: ${{ needs.determine_release.outputs.will_release }}
     steps:
-      # チェックアウト
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Changelog を正しく動作させるために必要
-
-      # Go をセットアップ
+          fetch-depth: 0
+      - uses: cycjimmy/semantic-release-action@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
           cache: true
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
