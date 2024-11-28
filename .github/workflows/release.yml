@@ -75,24 +75,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # Authenticate using GitHub App
-      - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.PRIVATE_KEY }}
-
-      - name: test
-        uses: JoseThen/comment-pr@v1.1.1
-        with:
-          comment: "Preview test"
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-
       - name: Post bumpr status comment
         uses: haya14busa/action-bumpr@v1
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
