@@ -19,12 +19,11 @@ jobs:
           fetch-depth: 0
 
       # Authenticate using GitHub App
-      - name: Authenticate with GitHub App
-        id: auth
+      - name: Generate token
+        id: generate_token
         uses: tibdex/github-app-token@v1
         with:
           app_id: ${{ secrets.APP_ID }}
-          installation_id: ${{ secrets.INSTALLATION_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       # Bump version on merging Pull Requests with specific labels. (bump:major,bump:minor,bump:patch)
@@ -36,8 +35,9 @@ jobs:
       - uses: haya14busa/action-update-semver@v1
         if: "!steps.bumpr.outputs.skip"
         with:
-          github_token: ${{ steps.auth.outputs.token }}
           tag: ${{ steps.bumpr.outputs.next_version }}
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
 
       # Get tag name.
       - id: tag
@@ -59,7 +59,7 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
 
       - name: Run GoReleaser
         if: "steps.tag.outputs.value != ''"
@@ -69,7 +69,7 @@ jobs:
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
 
   release-check:
     if: github.event.action == 'labeled'
@@ -80,15 +80,14 @@ jobs:
           fetch-depth: 0
 
       # Authenticate using GitHub App
-      - name: Authenticate with GitHub App
-        id: auth
+      - name: Generate token
+        id: generate_token
         uses: tibdex/github-app-token@v1
         with:
           app_id: ${{ secrets.APP_ID }}
-          installation_id: ${{ secrets.INSTALLATION_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Post bumpr status comment
         uses: haya14busa/action-bumpr@v1
         env:
-          GITHUB_TOKEN: ${{ steps.auth.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
