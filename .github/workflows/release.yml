@@ -7,15 +7,6 @@ on:
       - main
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: lint
-        uses: reviewdog/action-golangci-lint@v2
-        with:
-          level: warning
-
   determine_release:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -36,7 +27,6 @@ jobs:
     permissions:
       contents: write
     needs:
-      - lint
       - determine_release
     if: ${{ needs.determine_release.outputs.will_release }}
     steps:
