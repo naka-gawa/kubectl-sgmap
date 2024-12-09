@@ -7,6 +7,9 @@ TEST_VERBOSE ?= true
 
 build: format test $(PLUGIN_BIN)
 
+init:
+	aqua install
+
 format:
 	go fmt ./...
 
