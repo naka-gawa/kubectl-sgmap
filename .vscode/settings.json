@@ -1,5 +1,6 @@
 {
     "conventionalCommits.scopes": [
-        "version-manager"
+        "version-manager",
+        "settings.json"
     ]
 }
