@@ -65,12 +65,12 @@ func (o *options) Validate() error {
 func (o *options) Run() error {
 	clientset, err := k8s.GetClientset()
 	if err != nil {
-		return fmt.Errorf("Failed to create Kubernetes clientset: %v", err)
+		return fmt.Errorf("failed to create Kubernetes clientset: %v", err)
 	}
 
 	pods, err := clientset.CoreV1().Pods("kube-system").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to list pods: %v", err)
+		return fmt.Errorf("failed to list pods: %v", err)
 	}
 	podInfos := []lib.PodInfo{}
 	for _, pod := range pods.Items {
