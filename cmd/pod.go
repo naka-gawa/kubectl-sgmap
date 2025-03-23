@@ -19,13 +19,18 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 				o.PodName = args[0]
 			}
 
+			// all-namespacesが指定された場合、namespaceを無視
+			if o.AllNamespaces {
+				o.Namespace = ""
+			}
+
 			return o.Run(cmd.Context())
 		},
 	}
 
 	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", "", "namespace of the pod")
 	cmd.Flags().StringVar(&o.OutputFormat, "output", "", "output format (json|yaml|table)")
-	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", false, "search pods in all namespaces")
+	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", false, "search pods in all namespaces")
 
 	return cmd
 }
