@@ -7,7 +7,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     # restricts the job to run only maintainers
-    if: github.actor == 'naka-gawa'
+    if: github.ref == 'refs/heads/main' && github.actor == 'naka-gawa'
     permissions:
       contents: write
     steps:
