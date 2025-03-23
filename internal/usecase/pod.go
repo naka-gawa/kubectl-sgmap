@@ -29,32 +29,34 @@ func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
-	// Kubernetes クライアントの初期化
 	k8sClient, err := kubernetes.NewClient()
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
 
-	// ポッド情報の取得
 	pods, err := k8sClient.GetPods(ctx, o.Namespace, o.PodName, o.AllNamespaces)
 	if err != nil {
 		return fmt.Errorf("failed to get pods: %w", err)
 	}
 
 	if len(pods) == 0 {
-		return fmt.Errorf("no pods found")
+		fmt.Fprintln(o.IOStreams.Out, "No resources found in default namespace.")
+		return nil
 	}
 
-	// AWS クライアントの初期化
 	awsClient, err := aws.NewClient()
 	if err != nil {
 		return fmt.Errorf("failed to create aws client: %w", err)
 	}
 
-	// ポッドのセキュリティグループ情報を取得
 	result, err := awsClient.GetSecurityGroupsForPods(ctx, pods)
 	if err != nil {
 		return fmt.Errorf("failed to get security groups: %w", err)
+	}
+
+	if len(result) == 0 {
+		fmt.Fprintln(o.IOStreams.Out, "No security group information found for the specified pods")
+		return nil
 	}
 
 	// 結果の出力

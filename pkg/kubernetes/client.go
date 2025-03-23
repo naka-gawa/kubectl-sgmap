@@ -38,36 +38,32 @@ func NewClient() (*Client, error) {
 
 // GetPods retrieves pod information from the Kubernetes API
 func (c *Client) GetPods(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error) {
-	// 名前空間の決定
 	if allNamespaces {
 		namespace = ""
 	} else if namespace == "" {
-		config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverrides := &clientcmd.ConfigOverrides{}
+		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+		ns, _, err := kubeConfig.Namespace()
 		if err != nil {
-			return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
+			return nil, fmt.Errorf("failed to get current namespace: %w", err)
 		}
 
-		currentContext := config.CurrentContext
-		if ctx, exists := config.Contexts[currentContext]; exists && ctx.Namespace != "" {
-			namespace = ctx.Namespace
-		} else {
-			namespace = "default"
-		}
+		namespace = ns
 	}
 
-	// ポッド名が指定されていれば特定のポッドを取得
 	if podName != "" {
 		pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get pod %s: %w", podName, err)
+			return nil, fmt.Errorf("failed to get pod %s in namespace %s: %w", podName, namespace, err)
 		}
 		return []corev1.Pod{*pod}, nil
 	}
 
-	// ポッドの一覧を取得
 	podList, err := c.clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list pods: %w", err)
+		return nil, fmt.Errorf("failed to list pods in namespace %s: %w", namespace, err)
 	}
 
 	return podList.Items, nil

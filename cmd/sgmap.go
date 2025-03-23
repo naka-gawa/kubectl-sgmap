@@ -13,9 +13,6 @@ func NewSgmapCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 		Long:  `Display security group information for Kubernetes workloads running on AWS`,
 	}
 
-	// サブコマンドを追加
 	cmd.AddCommand(NewPodCommand(streams))
-	// 他のサブコマンドもここに追加
-
 	return cmd
 }

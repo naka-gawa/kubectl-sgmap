@@ -7,7 +7,6 @@ import (
 	"github.com/naka-gawa/kubectl-sgmap/internal/usecase"
 )
 
-// NewPodCommand creates the pod subcommand
 func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 	o := usecase.NewPodOptions(streams)
 	cmd := &cobra.Command{
@@ -24,7 +23,6 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	// フラグの設定
 	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", "", "namespace of the pod")
 	cmd.Flags().StringVar(&o.OutputFormat, "output", "", "output format (json|yaml|table)")
 	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", false, "search pods in all namespaces")

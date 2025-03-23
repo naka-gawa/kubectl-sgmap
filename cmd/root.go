@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	version  string
-	revision string
+	version  = "dev"
+	revision = "unknown"
 	streams  = genericclioptions.IOStreams{
 		In:     os.Stdin,
 		Out:    os.Stdout,
