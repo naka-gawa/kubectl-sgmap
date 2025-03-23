@@ -7,7 +7,7 @@ before:
 
 builds:
   - binary: kubectl-sgmap
-    main: ./cmd/kubectl-sgmap/main.go
+    main: ./main.go
     env:
       - CGO_ENABLED=0
     goos:
