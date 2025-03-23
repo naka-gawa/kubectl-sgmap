@@ -22,6 +22,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Debug semantic-release output
+        run: |
+          echo "New release published: ${{ steps.semantic.outputs.new_release_published }}"
+          echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
+          echo "New release git tag: ${{ steps.semantic.outputs.new_release_git_tag }}"
+
+      # タグが作成された後、それをフェッチ
+      - name: Fetch tags
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: git fetch --tags origin
+
       - name: Set up Go
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
@@ -38,13 +49,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          GORELEASER_CURRENT_TAG: ${{ steps.semantic.outputs.new_release_version }}
-
-      - name: Report Release Status
-        if: always()
-        run: |
-          if [ "${{ steps.semantic.outputs.new_release_published }}" == "true" ]; then
-            echo "✅ Successfully created release ${{ steps.semantic.outputs.new_release_version }}"
-          else
-            echo "❌ No new release was created. No release-worthy changes were found."
-          fi
+          GORELEASER_CURRENT_TAG: ${{ steps.semantic.outputs.new_release_git_tag || steps.semantic.outputs.new_release_version }}
