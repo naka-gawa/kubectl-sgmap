@@ -59,6 +59,5 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		return nil
 	}
 
-	// 結果の出力
 	return utils.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
 }
