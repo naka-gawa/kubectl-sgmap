@@ -9,7 +9,7 @@ on:
 jobs:
   determine_release:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
     permissions:
       contents: write
     outputs:
