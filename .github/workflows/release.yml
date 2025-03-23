@@ -25,6 +25,11 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - name: Debug information
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "New release published: ${{ steps.determine_release.outputs.new_release_published }}"
+          echo "New release version: ${{ steps.determine_release.outputs.new_release_version }}"
       - name: Comment on PR with next version
         if: github.event_name == 'pull_request' && steps.determine_release.outputs.new_release_published == 'true'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
