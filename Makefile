@@ -21,10 +21,7 @@ else
 endif
 
 $(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES)
-	go build -o $(PLUGIN_BIN) ./cmd/$(PLUGIN_BIN)/main.go
-
-generate:
-	kubectl-plugin-builder generate
+	go build -o $(PLUGIN_BIN) ./main.go
 
 install: $(PLUGIN_BIN)
 	mv $(PLUGIN_BIN) $(INSTALL_DIR)
