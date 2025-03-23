@@ -35,8 +35,13 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
-// GetSecurityGroupsForPods retrieves security group information for the given pods
-func (c *Client) GetSecurityGroupsForPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error) {
+// FetchSecurityGroupsByPods retrieves security group information associated with the given pods.
+// For each pod with a valid IP address, it identifies the corresponding ENI (Elastic Network Interface)
+// and fetches the attached security groups. This method efficiently processes pod information to
+// provide a comprehensive mapping between pods and their AWS security group configurations.
+// It skips pods without IP addresses and gracefully handles errors when ENIs or security groups
+// cannot be retrieved, logging warnings but continuing with the remaining pods.
+func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error) {
 	result := make([]PodSecurityGroupInfo, 0, len(pods))
 
 	for _, pod := range pods {
@@ -44,7 +49,7 @@ func (c *Client) GetSecurityGroupsForPods(ctx context.Context, pods []corev1.Pod
 			continue
 		}
 
-		eni, err := c.findENIForPodIP(ctx, pod.Status.PodIP)
+		eni, err := c.LookupENIByPodIP(ctx, pod.Status.PodIP)
 		if err != nil {
 			fmt.Printf("Warning: failed to find ENI for pod %s/%s: %v\n", pod.Namespace, pod.Name, err)
 			continue
@@ -54,7 +59,7 @@ func (c *Client) GetSecurityGroupsForPods(ctx context.Context, pods []corev1.Pod
 			continue
 		}
 
-		sgs, err := c.getSecurityGroupsForENI(ctx, eni)
+		sgs, err := c.FetchSecurityGroupsByENI(ctx, eni)
 		if err != nil {
 			fmt.Printf("Warning: failed to get security groups for pod %s/%s: %v\n", pod.Namespace, pod.Name, err)
 			continue
@@ -70,7 +75,11 @@ func (c *Client) GetSecurityGroupsForPods(ctx context.Context, pods []corev1.Pod
 	return result, nil
 }
 
-func (c *Client) findENIForPodIP(ctx context.Context, podIP string) (string, error) {
+// LookupENIByPodIP retrieves the Elastic Network Interface (ENI) ID associated with the given pod IP address.
+// It queries the AWS EC2 API to find network interfaces that have the specified IP address assigned.
+// If no matching ENI is found, it returns an empty string without an error.
+// This method performs a single AWS API call to retrieve the ENI information.
+func (c *Client) LookupENIByPodIP(ctx context.Context, podIP string) (string, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		Filters: []types.Filter{
 			{
@@ -92,8 +101,12 @@ func (c *Client) findENIForPodIP(ctx context.Context, podIP string) (string, err
 	return *resp.NetworkInterfaces[0].NetworkInterfaceId, nil
 }
 
-// getSecurityGroupsForENI gets security groups attached to an ENI
-func (c *Client) getSecurityGroupsForENI(ctx context.Context, eniID string) ([]types.SecurityGroup, error) {
+// FetchSecurityGroupsByENI retrieves all security groups attached to the specified Elastic Network Interface (ENI).
+// It queries the AWS EC2 API to get the network interface details and extracts the associated security groups.
+// If the ENI is not found or has no security groups attached, appropriate errors are returned.
+// This method performs two AWS API calls: one to retrieve the ENI information and another to get the detailed
+// security group information based on the group IDs obtained from the ENI.
+func (c *Client) FetchSecurityGroupsByENI(ctx context.Context, eniID string) ([]types.SecurityGroup, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []string{eniID},
 	}

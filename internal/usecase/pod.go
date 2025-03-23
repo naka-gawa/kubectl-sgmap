@@ -49,7 +49,7 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to create aws client: %w", err)
 	}
 
-	result, err := awsClient.GetSecurityGroupsForPods(ctx, pods)
+	result, err := awsClient.FetchSecurityGroupsByPods(ctx, pods)
 	if err != nil {
 		return fmt.Errorf("failed to get security groups: %w", err)
 	}
