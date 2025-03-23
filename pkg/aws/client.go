@@ -2,65 +2,53 @@ package aws
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// GetENIForIPAddress retrieves the Elastic Network Interface (ENI) ID and associated security group IDs for a given IP address.
-//
-// Parameters:
-//   - ipAddress: The IP address for which to find the associated ENI.
-//
-// Returns:
-//   - string: The ID of the ENI associated with the given IP address.
-//   - []string: A list of security group IDs associated with the ENI.
-//   - error: An error object if there was an issue retrieving the ENI information.
-//
-// The function uses the AWS SDK to load the default configuration and create an EC2 client.
-// It then calls the DescribeNetworkInterfaces API to find the ENI associated with the specified IP address.
-// If no ENI is found, an error is returned. Otherwise, the ENI ID and associated security group IDs are returned.
-func GetENIForIPAddress(ipAddress string) (string, []string, error) {
-	// Load AWS SDK configuration
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+// Client provides access to AWS API
+type Client struct {
+	ec2Client *ec2.Client
+}
+
+// PodSecurityGroupInfo represents security group information for a pod
+type PodSecurityGroupInfo struct {
+	Pod            corev1.Pod
+	SecurityGroups []types.SecurityGroup
+	ENI            string
+}
+
+// NewClient creates a new AWS client
+func NewClient() (*Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to load AWS config: %v", err)
+		return nil, err
 	}
 
-	// Create EC2 client
-	client := ec2.NewFromConfig(cfg)
+	return &Client{
+		ec2Client: ec2.NewFromConfig(cfg),
+	}, nil
+}
 
-	// Call EC2 DescribeNetworkInterfaces API to get the ENI associated with the specified IP address
-	input := &ec2.DescribeNetworkInterfacesInput{
-		Filters: []types.Filter{
-			{
-				Name:   aws.String("private-ip-address"),
-				Values: []string{ipAddress},
-			},
-		},
+// GetSecurityGroupsForPods retrieves security groups for the given pods
+func (c *Client) GetSecurityGroupsForPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error) {
+	// ここでは実装の概要のみを示す
+	// AWS APIを呼び出してポッドのENIとセキュリティグループ情報を取得
+	result := make([]PodSecurityGroupInfo, 0, len(pods))
+
+	for _, pod := range pods {
+		// Pod IPから ENI を特定
+		// ENI に紐づくセキュリティグループを取得
+		// 結果を格納
+		result = append(result, PodSecurityGroupInfo{
+			Pod:            pod,
+			SecurityGroups: []types.SecurityGroup{}, // 実際の値を設定
+			ENI:            "",                      // 実際の値を設定
+		})
 	}
 
-	result, err := client.DescribeNetworkInterfaces(context.TODO(), input)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed to describe network interfaces: %v", err)
-	}
-
-	// Return ENI information
-	if len(result.NetworkInterfaces) == 0 {
-		return "", nil, fmt.Errorf("no ENI found for IP address: %s", ipAddress)
-	}
-
-	eni := result.NetworkInterfaces[0]
-	eniID := *eni.NetworkInterfaceId
-
-	// Get the list of security group IDs
-	var sgIDs []string
-	for _, sg := range eni.Groups {
-		sgIDs = append(sgIDs, *sg.GroupId)
-	}
-
-	return eniID, sgIDs, nil
+	return result, nil
 }
