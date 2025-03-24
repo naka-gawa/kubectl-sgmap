@@ -12,19 +12,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Client provides AWS API access
+// Client provides access to AWS EC2 APIs
 type Client struct {
 	ec2Client *ec2.Client
 }
 
-// PodSecurityGroupInfo represents security group information for a pod
+// PodSecurityGroupInfo represents the security group information associated with a Pod
 type PodSecurityGroupInfo struct {
 	Pod            corev1.Pod
 	SecurityGroups []types.SecurityGroup
 	ENI            string
 }
 
-// NewClient creates a new AWS client
+// NewClient creates a new AWS EC2 client
 func NewClient() (*Client, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
@@ -36,11 +36,7 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
-// FetchSecurityGroupsByPods retrieves all security groups attached to the specified Elastic Network Interface (ENI).
-// It queries the AWS EC2 API to get the network interface details and extracts the associated security groups.
-// If the ENI is not found or has no security groups attached, appropriate errors are returned.
-// This method performs two AWS API calls: one to retrieve the ENI information and another to get the detailed
-// security group information based on the group IDs obtained from the ENI.
+// FetchSecurityGroupsByPods fetches security groups associated with pods by resolving their ENIs
 func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error) {
 	podIPs, ipToPod := filterRunningPodsWithIPs(pods)
 	if len(podIPs) == 0 {
@@ -60,6 +56,7 @@ func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Po
 	return buildPodSecurityGroupInfo(ipToPod, ipToENI, eniToSGIDs, sgMap), nil
 }
 
+// filterRunningPodsWithIPs filters pods in the Running phase and extracts their IPs
 func filterRunningPodsWithIPs(pods []corev1.Pod) ([]string, map[string]corev1.Pod) {
 	var ips []string
 	ipToPod := make(map[string]corev1.Pod)
@@ -76,6 +73,7 @@ func filterRunningPodsWithIPs(pods []corev1.Pod) ([]string, map[string]corev1.Po
 	return ips, ipToPod
 }
 
+// fetchENIAndSGIDs retrieves ENIs and extracts corresponding SG IDs from private IPs
 func (c *Client) fetchENIAndSGIDs(ctx context.Context, podIPs []string) (
 	map[string]types.NetworkInterface,
 	map[string]string,
@@ -101,6 +99,7 @@ func (c *Client) fetchENIAndSGIDs(ctx context.Context, podIPs []string) (
 	return eniMap, ipToENI, eniToSGIDs, nil
 }
 
+// collectUniqueSGIDs deduplicates SG IDs from ENI to SG ID map
 func collectUniqueSGIDs(eniToSGIDs map[string][]string) []string {
 	set := map[string]struct{}{}
 	for _, ids := range eniToSGIDs {
@@ -115,6 +114,7 @@ func collectUniqueSGIDs(eniToSGIDs map[string][]string) []string {
 	return result
 }
 
+// buildPodSecurityGroupInfo builds the final mapping between Pod and its associated SGs and ENI
 func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string]string, eniToSGIDs map[string][]string, sgMap map[string]types.SecurityGroup) []PodSecurityGroupInfo {
 	var result []PodSecurityGroupInfo
 
@@ -139,6 +139,7 @@ func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string
 	return result
 }
 
+// GetENIsByPrivateIPs retrieves network interfaces from EC2 based on private IP addresses
 func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[string]types.NetworkInterface, error) {
 	if len(ips) == 0 {
 		return nil, nil
@@ -182,7 +183,6 @@ func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[str
 // It deduplicates input IDs, splits them into batches of up to 200 IDs (AWS API limit),
 // and processes each batch concurrently using a worker pool.
 func (c *Client) GetSecurityGroupsParallel(ctx context.Context, sgIDs []string) (map[string]types.SecurityGroup, error) {
-	// ユニークな SG ID を集める
 	seen := make(map[string]struct{})
 	var deduped []string
 	for _, id := range sgIDs {
@@ -196,7 +196,6 @@ func (c *Client) GetSecurityGroupsParallel(ctx context.Context, sgIDs []string) 
 		return map[string]types.SecurityGroup{}, nil
 	}
 
-	// バッチ処理ユーティリティを使って並列取得
 	return utils.RunBatchParallel(ctx, deduped, 200, 5, func(ctx context.Context, ids []string) (map[string]types.SecurityGroup, error) {
 		input := &ec2.DescribeSecurityGroupsInput{
 			GroupIds: ids,
