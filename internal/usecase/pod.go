@@ -8,7 +8,7 @@ import (
 
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/kubernetes"
-	"github.com/naka-gawa/kubectl-sgmap/pkg/utils"
+	"github.com/naka-gawa/kubectl-sgmap/pkg/output"
 )
 
 // PodOptions contains options for the pod command
@@ -59,5 +59,5 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		return nil
 	}
 
-	return utils.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
+	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
 }
