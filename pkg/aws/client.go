@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/naka-gawa/kubectl-sgmap/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -35,108 +36,183 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
-// FetchSecurityGroupsByPods retrieves security group information associated with the given pods.
-// For each pod with a valid IP address, it identifies the corresponding ENI (Elastic Network Interface)
-// and fetches the attached security groups. This method efficiently processes pod information to
-// provide a comprehensive mapping between pods and their AWS security group configurations.
-// It skips pods without IP addresses and gracefully handles errors when ENIs or security groups
-// cannot be retrieved, logging warnings but continuing with the remaining pods.
+// FetchSecurityGroupsByPods retrieves all security groups attached to the specified Elastic Network Interface (ENI).
+// It queries the AWS EC2 API to get the network interface details and extracts the associated security groups.
+// If the ENI is not found or has no security groups attached, appropriate errors are returned.
+// This method performs two AWS API calls: one to retrieve the ENI information and another to get the detailed
+// security group information based on the group IDs obtained from the ENI.
 func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error) {
-	result := make([]PodSecurityGroupInfo, 0, len(pods))
+	podIPs, ipToPod := filterRunningPodsWithIPs(pods)
+	if len(podIPs) == 0 {
+		return nil, nil
+	}
+
+	_, ipToENI, eniToSGIDs, err := c.fetchENIAndSGIDs(ctx, podIPs)
+	if err != nil {
+		return nil, err
+	}
+
+	sgMap, err := c.GetSecurityGroupsParallel(ctx, collectUniqueSGIDs(eniToSGIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	return buildPodSecurityGroupInfo(ipToPod, ipToENI, eniToSGIDs, sgMap), nil
+}
+
+func filterRunningPodsWithIPs(pods []corev1.Pod) ([]string, map[string]corev1.Pod) {
+	var ips []string
+	ipToPod := make(map[string]corev1.Pod)
 
 	for _, pod := range pods {
-		if pod.Status.PodIP == "" {
+		if pod.Status.Phase != corev1.PodRunning {
 			continue
 		}
+		if ip := pod.Status.PodIP; ip != "" {
+			ips = append(ips, ip)
+			ipToPod[ip] = pod
+		}
+	}
+	return ips, ipToPod
+}
 
-		eni, err := c.LookupENIByPodIP(ctx, pod.Status.PodIP)
-		if err != nil {
-			fmt.Printf("Warning: failed to find ENI for pod %s/%s: %v\n", pod.Namespace, pod.Name, err)
+func (c *Client) fetchENIAndSGIDs(ctx context.Context, podIPs []string) (
+	map[string]types.NetworkInterface,
+	map[string]string,
+	map[string][]string,
+	error,
+) {
+	eniMap, err := c.GetENIsByPrivateIPs(ctx, podIPs)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to describe ENIs: %w", err)
+	}
+
+	ipToENI := make(map[string]string)
+	eniToSGIDs := make(map[string][]string)
+	for _, eni := range eniMap {
+		eniID := aws.ToString(eni.NetworkInterfaceId)
+		for _, ip := range eni.PrivateIpAddresses {
+			ipToENI[aws.ToString(ip.PrivateIpAddress)] = eniID
+		}
+		for _, group := range eni.Groups {
+			eniToSGIDs[eniID] = append(eniToSGIDs[eniID], aws.ToString(group.GroupId))
+		}
+	}
+	return eniMap, ipToENI, eniToSGIDs, nil
+}
+
+func collectUniqueSGIDs(eniToSGIDs map[string][]string) []string {
+	set := map[string]struct{}{}
+	for _, ids := range eniToSGIDs {
+		for _, id := range ids {
+			set[id] = struct{}{}
+		}
+	}
+	var result []string
+	for id := range set {
+		result = append(result, id)
+	}
+	return result
+}
+
+func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string]string, eniToSGIDs map[string][]string, sgMap map[string]types.SecurityGroup) []PodSecurityGroupInfo {
+	var result []PodSecurityGroupInfo
+
+	for ip, pod := range ipToPod {
+		eniID, ok := ipToENI[ip]
+		if !ok {
+			fmt.Printf("Warning: ENI not found for pod %s/%s (IP %s)\n", pod.Namespace, pod.Name, ip)
 			continue
 		}
-
-		if eni == "" {
-			continue
+		var sgs []types.SecurityGroup
+		for _, sgID := range eniToSGIDs[eniID] {
+			if sg, ok := sgMap[sgID]; ok {
+				sgs = append(sgs, sg)
+			}
 		}
-
-		sgs, err := c.FetchSecurityGroupsByENI(ctx, eni)
-		if err != nil {
-			fmt.Printf("Warning: failed to get security groups for pod %s/%s: %v\n", pod.Namespace, pod.Name, err)
-			continue
-		}
-
 		result = append(result, PodSecurityGroupInfo{
 			Pod:            pod,
+			ENI:            eniID,
 			SecurityGroups: sgs,
-			ENI:            eni,
 		})
+	}
+	return result
+}
+
+func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[string]types.NetworkInterface, error) {
+	if len(ips) == 0 {
+		return nil, nil
+	}
+
+	const batchSize = 200
+	result := make(map[string]types.NetworkInterface)
+
+	for i := 0; i < len(ips); i += batchSize {
+		end := i + batchSize
+		if end > len(ips) {
+			end = len(ips)
+		}
+		batch := ips[i:end]
+
+		input := &ec2.DescribeNetworkInterfacesInput{
+			Filters: []types.Filter{
+				{
+					Name:   aws.String("addresses.private-ip-address"),
+					Values: batch,
+				},
+			},
+		}
+
+		paginator := ec2.NewDescribeNetworkInterfacesPaginator(c.ec2Client, input)
+		for paginator.HasMorePages() {
+			page, err := paginator.NextPage(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to paginate DescribeNetworkInterfaces: %w", err)
+			}
+			for _, eni := range page.NetworkInterfaces {
+				result[aws.ToString(eni.NetworkInterfaceId)] = eni
+			}
+		}
 	}
 
 	return result, nil
 }
 
-// LookupENIByPodIP retrieves the Elastic Network Interface (ENI) ID associated with the given pod IP address.
-// It queries the AWS EC2 API to find network interfaces that have the specified IP address assigned.
-// If no matching ENI is found, it returns an empty string without an error.
-// This method performs a single AWS API call to retrieve the ENI information.
-func (c *Client) LookupENIByPodIP(ctx context.Context, podIP string) (string, error) {
-	input := &ec2.DescribeNetworkInterfacesInput{
-		Filters: []types.Filter{
-			{
-				Name:   aws.String("private-ip-address"),
-				Values: []string{podIP},
-			},
-		},
+// GetSecurityGroupsParallel retrieves security groups by their IDs using parallel processing.
+// It deduplicates input IDs, splits them into batches of up to 200 IDs (AWS API limit),
+// and processes each batch concurrently using a worker pool.
+func (c *Client) GetSecurityGroupsParallel(ctx context.Context, sgIDs []string) (map[string]types.SecurityGroup, error) {
+	// ユニークな SG ID を集める
+	seen := make(map[string]struct{})
+	var deduped []string
+	for _, id := range sgIDs {
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			deduped = append(deduped, id)
+		}
 	}
 
-	resp, err := c.ec2Client.DescribeNetworkInterfaces(ctx, input)
-	if err != nil {
-		return "", fmt.Errorf("failed to describe network interfaces: %w", err)
+	if len(deduped) == 0 {
+		return map[string]types.SecurityGroup{}, nil
 	}
 
-	if len(resp.NetworkInterfaces) == 0 {
-		return "", nil
-	}
+	// バッチ処理ユーティリティを使って並列取得
+	return utils.RunBatchParallel(ctx, deduped, 200, 5, func(ctx context.Context, ids []string) (map[string]types.SecurityGroup, error) {
+		input := &ec2.DescribeSecurityGroupsInput{
+			GroupIds: ids,
+		}
 
-	return *resp.NetworkInterfaces[0].NetworkInterfaceId, nil
-}
+		resp, err := c.ec2Client.DescribeSecurityGroups(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("DescribeSecurityGroups failed: %w", err)
+		}
 
-// FetchSecurityGroupsByENI retrieves all security groups attached to the specified Elastic Network Interface (ENI).
-// It queries the AWS EC2 API to get the network interface details and extracts the associated security groups.
-// If the ENI is not found or has no security groups attached, appropriate errors are returned.
-// This method performs two AWS API calls: one to retrieve the ENI information and another to get the detailed
-// security group information based on the group IDs obtained from the ENI.
-func (c *Client) FetchSecurityGroupsByENI(ctx context.Context, eniID string) ([]types.SecurityGroup, error) {
-	input := &ec2.DescribeNetworkInterfacesInput{
-		NetworkInterfaceIds: []string{eniID},
-	}
-
-	resp, err := c.ec2Client.DescribeNetworkInterfaces(ctx, input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe network interface %s: %w", eniID, err)
-	}
-
-	if len(resp.NetworkInterfaces) == 0 {
-		return nil, fmt.Errorf("network interface %s not found", eniID)
-	}
-
-	sgIDs := []string{}
-	for _, sg := range resp.NetworkInterfaces[0].Groups {
-		sgIDs = append(sgIDs, *sg.GroupId)
-	}
-
-	if len(sgIDs) == 0 {
-		return []types.SecurityGroup{}, nil
-	}
-
-	sgInput := &ec2.DescribeSecurityGroupsInput{
-		GroupIds: sgIDs,
-	}
-
-	sgResp, err := c.ec2Client.DescribeSecurityGroups(ctx, sgInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe security groups: %w", err)
-	}
-
-	return sgResp.SecurityGroups, nil
+		sgMap := make(map[string]types.SecurityGroup)
+		for _, sg := range resp.SecurityGroups {
+			if sg.GroupId != nil {
+				sgMap[*sg.GroupId] = sg
+			}
+		}
+		return sgMap, nil
+	})
 }
