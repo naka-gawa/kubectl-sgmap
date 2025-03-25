@@ -15,9 +15,9 @@ format:
 
 test:
 ifeq ($(TEST_VERBOSE), true)
-	go test -v ./... -count=1
+	go test -v ./... -race -count=1
 else
-	go test ./... -count=1
+	go test ./... -race -count=1
 endif
 
 $(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES)
