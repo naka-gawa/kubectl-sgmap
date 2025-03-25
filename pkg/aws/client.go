@@ -142,7 +142,7 @@ func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string
 // GetENIsByPrivateIPs retrieves network interfaces from EC2 based on private IP addresses using batch processing
 func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[string]types.NetworkInterface, error) {
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("no private IPs provided")
+		return nil, fmt.Errorf("input list of private IPs is empty")
 	}
 
 	return utils.RunBatchParallel(ctx, ips, 200, 5, func(ctx context.Context, batch []string) (map[string]types.NetworkInterface, error) {
