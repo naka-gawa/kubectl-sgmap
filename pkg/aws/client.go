@@ -139,22 +139,13 @@ func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string
 	return result
 }
 
-// GetENIsByPrivateIPs retrieves network interfaces from EC2 based on private IP addresses
+// GetENIsByPrivateIPs retrieves network interfaces from EC2 based on private IP addresses using batch processing
 func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[string]types.NetworkInterface, error) {
 	if len(ips) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("no private IPs provided")
 	}
 
-	const batchSize = 200
-	result := make(map[string]types.NetworkInterface)
-
-	for i := 0; i < len(ips); i += batchSize {
-		end := i + batchSize
-		if end > len(ips) {
-			end = len(ips)
-		}
-		batch := ips[i:end]
-
+	return utils.RunBatchParallel(ctx, ips, 200, 5, func(ctx context.Context, batch []string) (map[string]types.NetworkInterface, error) {
 		input := &ec2.DescribeNetworkInterfacesInput{
 			Filters: []types.Filter{
 				{
@@ -165,6 +156,7 @@ func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[str
 		}
 
 		paginator := ec2.NewDescribeNetworkInterfacesPaginator(c.ec2Client, input)
+		result := make(map[string]types.NetworkInterface)
 		for paginator.HasMorePages() {
 			page, err := paginator.NextPage(ctx)
 			if err != nil {
@@ -174,9 +166,8 @@ func (c *Client) GetENIsByPrivateIPs(ctx context.Context, ips []string) (map[str
 				result[aws.ToString(eni.NetworkInterfaceId)] = eni
 			}
 		}
-	}
-
-	return result, nil
+		return result, nil
+	})
 }
 
 // GetSecurityGroupsParallel retrieves security groups by their IDs using parallel processing.
