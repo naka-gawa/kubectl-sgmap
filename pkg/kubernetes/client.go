@@ -15,6 +15,12 @@ type Client struct {
 	clientset *kubernetes.Clientset
 }
 
+// Interface defines the methods provided by the AWS EC2 client.
+// Used for dependency injection and testing.
+type Interface interface {
+	GetPods(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error)
+}
+
 // NewClient creates a new Kubernetes client
 func NewClient() (*Client, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()

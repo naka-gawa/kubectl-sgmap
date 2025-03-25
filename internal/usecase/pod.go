@@ -11,6 +11,10 @@ import (
 	"github.com/naka-gawa/kubectl-sgmap/pkg/output"
 )
 
+var newK8sClient func() (kubernetes.Interface, error) = func() (kubernetes.Interface, error) {
+	return kubernetes.NewClient()
+}
+
 // PodOptions contains options for the pod command
 type PodOptions struct {
 	PodName       string
@@ -18,6 +22,8 @@ type PodOptions struct {
 	AllNamespaces bool
 	OutputFormat  string
 	IOStreams     *genericclioptions.IOStreams
+	K8sClient     kubernetes.Interface
+	AWSClient     aws.Interface
 }
 
 // NewPodOptions creates new PodOptions with default values
@@ -29,27 +35,33 @@ func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
-	k8sClient, err := kubernetes.NewClient()
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes client: %w", err)
+	if o.K8sClient == nil {
+		var err error
+		o.K8sClient, err = newK8sClient()
+		if err != nil {
+			return fmt.Errorf("failed to create kubernetes client: %w", err)
+		}
 	}
 
-	pods, err := k8sClient.GetPods(ctx, o.Namespace, o.PodName, o.AllNamespaces)
+	if o.AWSClient == nil {
+		var err error
+		o.AWSClient, err = aws.NewClient()
+		if err != nil {
+			return fmt.Errorf("failed to create aws client: %w", err)
+		}
+	}
+
+	pods, err := o.K8sClient.GetPods(ctx, o.Namespace, o.PodName, o.AllNamespaces)
 	if err != nil {
 		return fmt.Errorf("failed to get pods: %w", err)
 	}
 
 	if len(pods) == 0 {
-		fmt.Fprintln(o.IOStreams.Out, "No resources found in default namespace.")
+		fmt.Fprintf(o.IOStreams.Out, "No resources found in namespace.\n")
 		return nil
 	}
 
-	awsClient, err := aws.NewClient()
-	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
-	}
-
-	result, err := awsClient.FetchSecurityGroupsByPods(ctx, pods)
+	result, err := o.AWSClient.FetchSecurityGroupsByPods(ctx, pods)
 	if err != nil {
 		return fmt.Errorf("failed to get security groups: %w", err)
 	}
