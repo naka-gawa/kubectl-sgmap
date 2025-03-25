@@ -17,11 +17,18 @@ type Client struct {
 	ec2Client *ec2.Client
 }
 
+// Interface defines the methods provided by the AWS EC2 client.
+// Used for dependency injection and testing.
+type Interface interface {
+	FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Pod) ([]PodSecurityGroupInfo, error)
+}
+
 // PodSecurityGroupInfo represents the security group information associated with a Pod
 type PodSecurityGroupInfo struct {
 	Pod            corev1.Pod
 	SecurityGroups []types.SecurityGroup
 	ENI            string
+	InterfaceType  string
 }
 
 // NewClient creates a new AWS EC2 client
@@ -43,7 +50,7 @@ func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Po
 		return nil, nil
 	}
 
-	_, ipToENI, eniToSGIDs, err := c.fetchENIAndSGIDs(ctx, podIPs)
+	eniMap, ipToENI, eniToSGIDs, err := c.fetchENIAndSGIDs(ctx, podIPs)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +60,7 @@ func (c *Client) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Po
 		return nil, err
 	}
 
-	return buildPodSecurityGroupInfo(ipToPod, ipToENI, eniToSGIDs, sgMap), nil
+	return buildPodSecurityGroupInfo(ipToPod, ipToENI, eniToSGIDs, sgMap, eniMap), nil
 }
 
 // filterRunningPodsWithIPs filters pods in the Running phase and extracts their IPs
@@ -115,7 +122,13 @@ func collectUniqueSGIDs(eniToSGIDs map[string][]string) []string {
 }
 
 // buildPodSecurityGroupInfo builds the final mapping between Pod and its associated SGs and ENI
-func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string]string, eniToSGIDs map[string][]string, sgMap map[string]types.SecurityGroup) []PodSecurityGroupInfo {
+func buildPodSecurityGroupInfo(
+	ipToPod map[string]corev1.Pod,
+	ipToENI map[string]string,
+	eniToSGIDs map[string][]string,
+	sgMap map[string]types.SecurityGroup,
+	eniMap map[string]types.NetworkInterface,
+) []PodSecurityGroupInfo {
 	var result []PodSecurityGroupInfo
 
 	for ip, pod := range ipToPod {
@@ -130,10 +143,15 @@ func buildPodSecurityGroupInfo(ipToPod map[string]corev1.Pod, ipToENI map[string
 				sgs = append(sgs, sg)
 			}
 		}
+		interfaceType := ""
+		if eni, ok := eniMap[eniID]; ok {
+			interfaceType = string(eni.InterfaceType)
+		}
 		result = append(result, PodSecurityGroupInfo{
 			Pod:            pod,
 			ENI:            eniID,
 			SecurityGroups: sgs,
+			InterfaceType:  interfaceType,
 		})
 	}
 	return result
