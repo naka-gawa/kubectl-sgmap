@@ -42,6 +42,7 @@ bower_components
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+.github/prompts/*
 shared/repos/*
 !.gitkeep
 !**/templates/**/.env
