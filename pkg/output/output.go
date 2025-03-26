@@ -84,8 +84,8 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 			sgNames = append(sgNames, awsSDK.ToString(sg.GroupName))
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			r.Pod.Name,
 			r.Pod.Namespace,
+			r.Pod.Name,
 			r.ENI,
 			r.InterfaceType,
 			strings.Join(sgIDs, ", "),
