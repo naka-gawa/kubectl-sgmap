@@ -17,20 +17,49 @@
 
 ## Installation
 
-kube-sgmap is easy to install, and is available from the following sources:
+Project `sgmap` is distributed as a kubectl plugin, and is available from the following ways:
 
-| Distribution                                        | Command / Link                                                      |
-|-----------------------------------------------------|---------------------------------------------------------------------|
-| Pre-built binaries for macOS, Linux, and Windows    | [GitHub releases](https://github.com/naka-gawa/kube-sgmap/releases) |
-| [Krew](https://krew.sigs.k8s.io/) (macOS and Linux) | `kubectl krew install score`                                        |
-| Manual Installation                                 | steps below                                                         |
+1. kubectl plugin manager [krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/)
+2. Using go install
+3. Manual Installation (Build from source)
 
-## Manual Installation
+### krew Installation
 
-To install `kubectl-sgmap`, follow these steps:
+1. Install [krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) plugin manager
+
+1. Adding a custom index
+
+```bash
+kubectl krew index add my-plugin https://github.com/naka-gawa/kubectl-sgmap.git
+```
+
+1. Install the plugin
+
+```bash
+kubectl krew install my-plugin/sgmap
+```
+
+### Using go install
+
+If you have a latest version of Go installed you can build and install as follows:
+
+```bash
+go install github.com/naka-gawa/kubectl-sgmap@latest
+```
+
+### Manual Installation (Build from source code)
+
+1. Clone the source (from GitHub).
 
 ```bash
 git clone https://github.com/naka-gawa/kubectl-sgmap.git
+cd kubectl-sgmap
+make install
+```
+
+1. From the project's root directory, do the following:
+
+```bash
 cd kubectl-sgmap
 make install
 ```
@@ -47,12 +76,15 @@ kubectl sgmap pod -n [NameSpace]
 ### Example Output
 
 ```bash
-╰─ k sgmap pod -n test
-POD NAME                                             IP ADDRESS       ENI ID                  SECURITY GROUP IDS
-xxxxx-123455678-12345                                192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
-xxxxx-123455678-12346                                192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
+kubectl sgmap pod -n test
+POD NAME                  IP ADDRESS       ENI ID                  SECURITY GROUP IDS
+xxxxx-123455678-12345     192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
+xxxxx-123455678-12346     192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
 ~snip~
 ```
+
+Support output options `--output` and `-o` to change the format.
+The default is `table`. Other options are `json` and `yaml`.
 
 ## Contributing
 
