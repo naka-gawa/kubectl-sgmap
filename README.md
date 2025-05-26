@@ -17,6 +17,16 @@
 
 ## Installation
 
+kube-sgmap is easy to install, and is available from the following sources:
+
+| Distribution                                        | Command / Link                                                      |
+|-----------------------------------------------------|---------------------------------------------------------------------|
+| Pre-built binaries for macOS, Linux, and Windows    | [GitHub releases](https://github.com/naka-gawa/kube-sgmap/releases) |
+| [Krew](https://krew.sigs.k8s.io/) (macOS and Linux) | `kubectl krew install score`                                        |
+| Manual Installation                                 | steps below                                                         |
+
+## Manual Installation
+
 To install `kubectl-sgmap`, follow these steps:
 
 ```bash
@@ -45,7 +55,9 @@ xxxxx-123455678-12346                                192.168.10.9     eni-123456
 ```
 
 ## Contributing
+
 Contributions are welcome! Please open an issue or submit a pull request with any improvements, bug fixes, or new features.
 
 ## License
+
 This project is licensed under the MIT License. See the LICENSE file for more details.
