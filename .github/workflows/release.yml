@@ -138,6 +138,7 @@ jobs:
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
+          add-paths: .
           commit-message: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
           title: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
           body: |
@@ -149,4 +150,8 @@ jobs:
               - Linux AMD64: ${{ steps.manifest.outputs.LINUX_AMD64_SHA256 }}
               - Linux ARM64: ${{ steps.manifest.outputs.LINUX_ARM64_SHA256 }}
           branch: update-krew-manifest-v${{ steps.semantic.outputs.new_release_version }}
+          branch-suffix: timestamp
           delete-branch: true
+          base: main
+          reviewers: ${{ github.actor }}
+          draft: true
