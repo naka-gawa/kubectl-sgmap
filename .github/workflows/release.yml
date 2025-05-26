@@ -141,5 +141,6 @@ jobs:
               - Darwin ARM64: ${{ steps.manifest.outputs.DARWIN_ARM64_SHA256 }}
               - Darwin AMD64: ${{ steps.manifest.outputs.DARWIN_AMD64_SHA256 }}
               - Linux AMD64: ${{ steps.manifest.outputs.LINUX_AMD64_SHA256 }}
+              - Linux ARM64: ${{ steps.manifest.outputs.LINUX_ARM64_SHA256 }}
           branch: update-krew-manifest-v${{ steps.semantic.outputs.new_release_version }}
           delete-branch: true
