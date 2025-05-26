@@ -3,7 +3,7 @@ kind: Plugin
 metadata:
   name: sgmap
 spec:
-  version: "v0.9.2"
+  version: "v0.9.3"
   homepage: https://github.com/naka-gawa/kubectl-sgmap
   shortDescription: "A kubectl plugin to visualize security group per pod."
   description: |
@@ -14,8 +14,8 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.2/kubectl-sgmap_Darwin_arm64.tar.gz
-      sha256: 
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.3/kubectl-sgmap_Darwin_arm64.tar.gz
+      sha256: 0094c6987a909914371b0e86abcfdf15b8f4fa41bfb993c43d16acc815eaf8ad
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -26,8 +26,8 @@ spec:
         matchLabels:
           os: darwin
           arch: amd64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.2/kubectl-sgmap_Darwin_amd64.tar.gz
-      sha256: 
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.3/kubectl-sgmap_Darwin_amd64.tar.gz
+      sha256: 066f4e28e6e242552f47538bcb42c29ba582f3f86a1c22a897f6f9b8c8438e97
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -38,8 +38,8 @@ spec:
         matchLabels:
           os: linux
           arch: amd64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.2/kubectl-sgmap_Linux_amd64.tar.gz
-      sha256: 
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.3/kubectl-sgmap_Linux_amd64.tar.gz
+      sha256: 55a96d44ada633f50a37d1c31bdadac39b4c8a11b49289286ed50da3eba44637
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -50,8 +50,8 @@ spec:
         matchLabels:
           os: linux
           arch: arm64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.2/kubectl-sgmap_Linux_arm64.tar.gz
-      sha256: 
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.9.3/kubectl-sgmap_Linux_arm64.tar.gz
+      sha256: 0ade32b821d9633c2e3af5dc442789886dec78a709a8d582e5581370b4fe96ef
       files:
         - from: "kubectl-sgmap"
           to: "."
