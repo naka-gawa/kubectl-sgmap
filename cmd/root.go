@@ -8,14 +8,15 @@ import (
 )
 
 var (
-	version  = "dev"
-	revision = "unknown"
-	streams  = genericclioptions.IOStreams{
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
+	version  string
+	revision string
 )
+
+var streams = genericclioptions.IOStreams{
+	In:     os.Stdin,
+	Out:    os.Stdout,
+	ErrOut: os.Stderr,
+}
 
 // Execute executes the root command
 func Execute() error {
@@ -23,6 +24,12 @@ func Execute() error {
 	rootCmd.AddCommand(newVersionCommand())
 
 	return rootCmd.Execute()
+}
+
+// SetVersionInfo sets the version and revision information
+func SetVersionInfo(v, r string) {
+	version = v
+	revision = r
 }
 
 // newVersionCommand creates the version command
