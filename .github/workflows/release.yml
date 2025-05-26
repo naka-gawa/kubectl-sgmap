@@ -136,7 +136,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           commit-message: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
           title: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
