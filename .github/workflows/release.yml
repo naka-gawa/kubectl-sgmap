@@ -29,7 +29,6 @@ jobs:
           echo "New release version: ${{ steps.semantic.outputs.new_release_version }}"
           echo "New release git tag: ${{ steps.semantic.outputs.new_release_git_tag }}"
 
-      # タグが作成された後、それをフェッチ
       - name: Fetch tags
         if: steps.semantic.outputs.new_release_published == 'true'
         run: git fetch --tags origin
@@ -64,7 +63,7 @@ jobs:
         run: |
           VERSION="v${{ steps.semantic.outputs.new_release_version }}"
 
-          # Extract checksums from the downloaded file - ファイル名パターンを修正
+          # Extract checksums from the downloaded file
           DARWIN_ARM64_SHA256=$(grep "kubectl-sgmap_Darwin_arm64.tar.gz" checksums.txt | awk '{print $1}')
           DARWIN_AMD64_SHA256=$(grep "kubectl-sgmap_Darwin_x86_64.tar.gz" checksums.txt | awk '{print $1}')
           LINUX_AMD64_SHA256=$(grep "kubectl-sgmap_Linux_x86_64.tar.gz" checksums.txt | awk '{print $1}')
@@ -75,7 +74,7 @@ jobs:
           echo "LINUX_AMD64_SHA256=${LINUX_AMD64_SHA256}" >> $GITHUB_OUTPUT
           echo "LINUX_ARM64_SHA256=${LINUX_ARM64_SHA256}" >> $GITHUB_OUTPUT
 
-          # デバッグ用に出力
+          # debug echo
           echo "Darwin ARM64: ${DARWIN_ARM64_SHA256}"
           echo "Darwin AMD64: ${DARWIN_AMD64_SHA256}"
           echo "Linux AMD64: ${LINUX_AMD64_SHA256}"
