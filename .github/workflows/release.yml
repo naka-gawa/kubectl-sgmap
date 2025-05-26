@@ -51,15 +51,35 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GORELEASER_CURRENT_TAG: ${{ steps.semantic.outputs.new_release_git_tag || steps.semantic.outputs.new_release_version }}
-
-      - name: Read manifest.json
-        id: manifest
+      - name: Download release assets
         if: steps.semantic.outputs.new_release_published == 'true'
         run: |
-          echo "DARWIN_ARM64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Darwin_arm64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
-          echo "DARWIN_AMD64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Darwin_amd64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
-          echo "LINUX_AMD64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Linux_amd64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
-          echo "LINUX_ARM64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Linux_arm64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
+          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
+          echo "Downloading checksums.txt for version ${VERSION}"
+          curl -s -L -o checksums.txt https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_${VERSION}_checksums.txt
+          cat checksums.txt
+      - name: Extract checksums
+        if: steps.semantic.outputs.new_release_published == 'true'
+        id: checksums
+        run: |
+          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
+
+          # Extract checksums from the downloaded file
+          DARWIN_ARM64_SHA256=$(grep "kubectl-sgmap_Darwin_arm64.tar.gz" checksums.txt | awk '{print $1}')
+          DARWIN_AMD64_SHA256=$(grep "kubectl-sgmap_Darwin_amd64.tar.gz" checksums.txt | awk '{print $1}')
+          LINUX_AMD64_SHA256=$(grep "kubectl-sgmap_Linux_amd64.tar.gz" checksums.txt | awk '{print $1}')
+          LINUX_ARM64_SHA256=$(grep "kubectl-sgmap_Linux_arm64.tar.gz" checksums.txt | awk '{print $1}')
+
+          echo "DARWIN_ARM64_SHA256=${DARWIN_ARM64_SHA256}" >> $GITHUB_OUTPUT
+          echo "DARWIN_AMD64_SHA256=${DARWIN_AMD64_SHA256}" >> $GITHUB_OUTPUT
+          echo "LINUX_AMD64_SHA256=${LINUX_AMD64_SHA256}" >> $GITHUB_OUTPUT
+          echo "LINUX_ARM64_SHA256=${LINUX_ARM64_SHA256}" >> $GITHUB_OUTPUT
+
+          # デバッグ用に出力
+          echo "Darwin ARM64: ${DARWIN_ARM64_SHA256}"
+          echo "Darwin AMD64: ${DARWIN_AMD64_SHA256}"
+          echo "Linux AMD64: ${LINUX_AMD64_SHA256}"
+          echo "Linux ARM64: ${LINUX_ARM64_SHA256}"
       - name: Re-checkout repository for PR creation
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -69,7 +89,7 @@ jobs:
       - name: Update Krew manifest
         if: steps.semantic.outputs.new_release_published == 'true'
         run: |
-          VERSION="${{ steps.semantic.outputs.new_release_version }}"
+          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
 
           cat > plugins/sgmap.yaml << EOF
           apiVersion: krew.googlecontainertools.github.com/v1alpha2
@@ -77,7 +97,7 @@ jobs:
           metadata:
             name: sgmap
           spec:
-            version: "v${VERSION}"
+            version: "${VERSION}"
             homepage: https://github.com/naka-gawa/kubectl-sgmap
             shortDescription: "A kubectl plugin to visualize security group per pod."
             description: |
@@ -88,8 +108,8 @@ jobs:
                   matchLabels:
                     os: darwin
                     arch: arm64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v${VERSION}/kubectl-sgmap_Darwin_arm64.tar.gz
-                sha256: ${{ steps.manifest.outputs.DARWIN_ARM64_SHA256 }}
+                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Darwin_arm64.tar.gz
+                sha256: ${{ steps.checksums.outputs.DARWIN_ARM64_SHA256 }}
                 files:
                   - from: "kubectl-sgmap"
                     to: "."
@@ -100,8 +120,8 @@ jobs:
                   matchLabels:
                     os: darwin
                     arch: amd64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v${VERSION}/kubectl-sgmap_Darwin_amd64.tar.gz
-                sha256: ${{ steps.manifest.outputs.DARWIN_AMD64_SHA256 }}
+                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Darwin_amd64.tar.gz
+                sha256: ${{ steps.checksums.outputs.DARWIN_AMD64_SHA256 }}
                 files:
                   - from: "kubectl-sgmap"
                     to: "."
@@ -112,8 +132,8 @@ jobs:
                   matchLabels:
                     os: linux
                     arch: amd64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v${VERSION}/kubectl-sgmap_Linux_amd64.tar.gz
-                sha256: ${{ steps.manifest.outputs.LINUX_AMD64_SHA256 }}
+                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Linux_amd64.tar.gz
+                sha256: ${{ steps.checksums.outputs.LINUX_AMD64_SHA256 }}
                 files:
                   - from: "kubectl-sgmap"
                     to: "."
@@ -124,8 +144,8 @@ jobs:
                   matchLabels:
                     os: linux
                     arch: arm64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v${VERSION}/kubectl-sgmap_Linux_arm64.tar.gz
-                sha256: ${{ steps.manifest.outputs.LINUX_ARM64_SHA256 }}
+                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Linux_arm64.tar.gz
+                sha256: ${{ steps.checksums.outputs.LINUX_ARM64_SHA256 }}
                 files:
                   - from: "kubectl-sgmap"
                     to: "."
@@ -133,7 +153,6 @@ jobs:
                     to: "."
                 bin: "./kubectl-sgmap"
           EOF
-
       - name: Create Pull Request
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
@@ -145,10 +164,10 @@ jobs:
             This PR updates the Krew plugin manifest in `plugins/sgmap.yaml` with:
             - Version: v${{ steps.semantic.outputs.new_release_version }}
             - SHA256 checksums from GoReleaser manifest:
-              - Darwin ARM64: ${{ steps.manifest.outputs.DARWIN_ARM64_SHA256 }}
-              - Darwin AMD64: ${{ steps.manifest.outputs.DARWIN_AMD64_SHA256 }}
-              - Linux AMD64: ${{ steps.manifest.outputs.LINUX_AMD64_SHA256 }}
-              - Linux ARM64: ${{ steps.manifest.outputs.LINUX_ARM64_SHA256 }}
+              - Darwin ARM64: ${{ steps.checksums.outputs.DARWIN_ARM64_SHA256 }}
+              - Darwin AMD64: ${{ steps.checksums.outputs.DARWIN_AMD64_SHA256 }}
+              - Linux AMD64: ${{ steps.checksums.outputs.LINUX_AMD64_SHA256 }}
+              - Linux ARM64: ${{ steps.checksums.outputs.LINUX_ARM64_SHA256 }}
           branch: update-krew-manifest-v${{ steps.semantic.outputs.new_release_version }}
           branch-suffix: timestamp
           delete-branch: true
