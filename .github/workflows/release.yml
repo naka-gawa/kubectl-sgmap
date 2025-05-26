@@ -10,6 +10,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.actor == 'naka-gawa'
     permissions:
       contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -59,7 +60,12 @@ jobs:
           echo "DARWIN_AMD64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Darwin_amd64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
           echo "LINUX_AMD64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Linux_amd64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
           echo "LINUX_ARM64_SHA256=$(jq -r '.artifacts[] | select(.name | contains("Linux_arm64.tar.gz")) | .extra.Checksum' dist/manifest.json)" >> $GITHUB_OUTPUT
-
+      - name: Re-checkout repository for PR creation
+        if: steps.semantic.outputs.new_release_published == 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0
       - name: Update Krew manifest
         if: steps.semantic.outputs.new_release_published == 'true'
         run: |
@@ -132,8 +138,8 @@ jobs:
         if: steps.semantic.outputs.new_release_published == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: "Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
-          title: "Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
+          commit-message: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
+          title: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
           body: |
             This PR updates the Krew plugin manifest in `plugins/sgmap.yaml` with:
             - Version: v${{ steps.semantic.outputs.new_release_version }}
