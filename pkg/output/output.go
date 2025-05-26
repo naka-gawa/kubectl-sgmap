@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"

@@ -4,7 +4,7 @@ kind: Plugin
 metadata:
   name: sgmap
 spec:
-  version: "v0.7.1"
+  version: "v0.7.2"
   homepage: https://github.com/naka-gawa/kubectl-sgmap
   shortDescription: "A kubectl plugin to visualize security group per pod."
   description: |
@@ -15,7 +15,7 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.7.1/kubectl-sgmap_Darwin_arm64.tar.gz
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.7.2/kubectl-sgmap_Darwin_arm64.tar.gz
       sha256: dca42b32e02de732deaabfc9379f7a4d33ee2de06b8708df5b854acae3996638
       files:
         - from: "kubectl-sgmap"
