@@ -1,11 +1,6 @@
 name: test
 
 on:
-  push:
-    branches: ["main"]
-    paths-ignore:
-      - "plugins/**"
-      - "**.md"
   pull_request:
     branches: ["main"]
     types: [opened, synchronize, reopened]
