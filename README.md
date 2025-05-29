@@ -1,5 +1,10 @@
 # kubectl-sgmap
 
+![Release](https://img.shields.io/github/v/release/naka-gawa/kubectl-sgmap?color=blue)
+![Downloads](https://img.shields.io/github/downloads/naka-gawa/kubectl-sgmap/total?color=green)
+![License](https://img.shields.io/github/license/bmcustodio/kubectl-topology)
+![Stars](https://img.shields.io/github/stars/naka-gawa/kubectl-sgmap?style=social)
+
 `kubectl-sgmap` is a custom kubectl plugin that displays the mapping of ENIs (Elastic Network Interfaces) and security groups assigned to pods in an EKS (Elastic Kubernetes Service) environment with Security Groups for Pods enabled. This plugin helps in auditing and managing pod-to-network associations to ensure security and compliance in Kubernetes clusters.
 
 ## Features

@@ -19,7 +19,6 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 				o.PodName = args[0]
 			}
 
-			// all-namespacesが指定された場合、namespaceを無視
 			if o.AllNamespaces {
 				o.Namespace = ""
 			}
