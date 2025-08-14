@@ -14,7 +14,7 @@
   "platformAutomerge": true,
   "automergeType": "pr",
   "automergeComment": "Auto-approved Renovate PR",
-  "automergeLabel": "automerge",
+  "labels": ["automerge"],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
   "prBodyNotes": ["**Automerge**: Enabled."]
