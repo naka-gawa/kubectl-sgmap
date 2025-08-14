@@ -30,7 +30,7 @@ jobs:
         run: |
           gh pr review "$PR_NUMBER" --approve --body "Auto-approved Renovate PR"
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.CODEOWNER_PAT }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_HOST: github.com
 
