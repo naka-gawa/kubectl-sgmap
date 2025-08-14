@@ -20,7 +20,14 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
 
-      - run: gh pr merge --auto --squash --delete-branch "$PR_NUMBER"
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_NUMBER"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_REPO: ${{ github.repository }}
