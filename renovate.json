@@ -4,7 +4,14 @@
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "platformAutomerge": true
     }
-  ]
+  ],
+  "platformAutomerge": true,
+  "requiredStatusChecks": [],
+  "prCreation": "immediate",
+  "prHourlyLimit": 0
 }
