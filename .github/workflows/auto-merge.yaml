@@ -20,14 +20,24 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
 
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           token: ${{ steps.generate-token.outputs.token }}
           fetch-depth: 0
 
-      - name: Enable auto-merge
-        run: gh pr merge --auto --squash "$PR_NUMBER"
+      - name: Approve Pull Request
+        run: |
+          gh pr review "$PR_NUMBER" --approve --body "Auto-approved Renovate PR"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_REPO: ${{ github.repository }}
+          GH_HOST: github.com
+
+      - name: Enable auto-merge
+        run: |
+          gh pr merge "$PR_NUMBER" --auto --squash
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_HOST: github.com
