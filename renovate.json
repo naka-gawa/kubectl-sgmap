@@ -7,21 +7,15 @@
       "automerge": true
     },
     {
-      "matchDepTypes": ["devDependencies"],
-      "automerge": true
-    },
-    {
-      "matchPackageNames": [
-        "actions/checkout",
-        "actions/setup-go",
-        "dorny/paths-filter"
-      ],
-      "automerge": true
-    },
-    {
       "matchUpdateTypes": ["major"],
       "automerge": false
     }
   ],
-  "platformAutomerge": true
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "automergeComment": "Auto-approved Renovate PR",
+  "automergeLabel": "automerge",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 2,
+  "prBodyNotes": ["**Automerge**: Enabled."]
 }
