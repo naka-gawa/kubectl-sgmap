@@ -16,6 +16,5 @@
   "automergeComment": "Auto-approved Renovate PR",
   "labels": ["automerge"],
   "prConcurrentLimit": 10,
-  "prHourlyLimit": 2,
-  "prBodyNotes": ["**Automerge**: Enabled."]
+  "prHourlyLimit": 2
 }
