@@ -1,17 +1,33 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["config:base"],
   "packageRules": [
     {
+      "matchUpdateTypes": ["patch", "minor"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": [
+        "actions/checkout",
+        "actions/setup-go",
+        "dorny/paths-filter"
+      ],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "matchCurrentVersion": "/^0/",
       "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash",
-      "platformAutomerge": true
+      "automerge": false
     }
   ],
-  "platformAutomerge": true,
-  "requiredStatusChecks": [],
-  "prCreation": "immediate",
-  "prHourlyLimit": 0
+  "platformAutomerge": true
 }
