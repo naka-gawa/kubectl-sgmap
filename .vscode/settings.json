@@ -1,6 +1,7 @@
 {
-    "conventionalCommits.scopes": [
-        "version-manager",
-        "settings.json"
-    ]
+  "conventionalCommits.scopes": [
+    "version-manager",
+    "settings.json",
+    "securitygroup"
+  ]
 }
