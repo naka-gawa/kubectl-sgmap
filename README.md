@@ -15,81 +15,104 @@
 
 ## Requirements
 
-- Kubernetes version: >= 1.33
-- EKS environment with Security Groups for Pods enabled
-- kubectl: >= 1.30
-- AWS CLI configured with necessary permissions
+- **Kubernetes Version**: This plugin is built and tested against Kubernetes `v1.33`. It is expected to be compatible with Kubernetes versions `v1.31` and newer.
+- **kubectl Version**: The plugin is built with client libraries from `kubectl v1.33`. It should be compatible with `kubectl` versions `v1.31` and newer.
+- **EKS Environment**: Requires an EKS cluster with Security Groups for Pods enabled.
+- **AWS CLI**: A configured AWS CLI with permissions to describe EC2 network interfaces and security groups.
 
 ## Installation
 
 Project `sgmap` is distributed as a kubectl plugin, and is available from the following ways:
 
-1. kubectl plugin manager [krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/)
-2. Using go install
-3. Manual Installation (Build from source)
+1. **Kubectl Plugin Manager (krew)**: Recommended for most users.
+2. **Go Install**: For users who have a Go environment set up.
+3. **Manual Installation**: For developers and contributors.
 
-### krew Installation
+### Krew Installation
 
-1. Install [krew](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) plugin manager
+1. **Install krew**: Follow the [official krew installation guide](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) to set up the plugin manager.
 
-1. Adding a custom index
-
+2. **Add the custom plugin index**: This command adds the `kubectl-sgmap` repository as a new plugin index for krew.
 ```bash
-kubectl krew index add my-plugin https://github.com/naka-gawa/kubectl-sgmap.git
+kubectl krew index add sgmap-repo https://github.com/naka-gawa/kubectl-sgmap.git
 ```
 
-1. Install the plugin
-
+3. **Install the plugin**: Now you can install the `sgmap` plugin from the newly added index.
 ```bash
-kubectl krew install my-plugin/sgmap
+kubectl krew install sgmap-repo/sgmap
 ```
 
-### Using go install
+### Go Install
 
-If you have a latest version of Go installed you can build and install as follows:
-
+If you have a Go environment configured, you can install the plugin with the following command:
 ```bash
 go install github.com/naka-gawa/kubectl-sgmap@latest
 ```
 
-### Manual Installation (Build from source code)
+### Manual Installation (from source)
 
-1. Clone the source (from GitHub).
+To build and install the plugin from the source code, follow these steps:
 
+1. **Clone the repository**:
 ```bash
 git clone https://github.com/naka-gawa/kubectl-sgmap.git
-cd kubectl-sgmap
-make install
 ```
 
-1. From the project's root directory, do the following:
-
+2. **Build and install**:
 ```bash
 cd kubectl-sgmap
 make install
 ```
+This will build the `kubectl-sgmap` binary and move it to a directory in your `$PATH`.
 
 ## Usage
 
-Once installed, you can use the plugin with the following command:
-This command will display a list of ENIs and security groups associated with each pod running in your EKS cluster.
+The `sgmap` plugin follows the standard `kubectl` command structure.
 
 ```bash
-kubectl sgmap pod -n [NameSpace]
+kubectl sgmap <subcommand> [flags]
 ```
 
-### Example Output
+### Subcommands
 
+- `pod` (aliases: `pods`, `po`): Display security group information for pods.
+- `version`: Print the plugin version.
+
+### Examples
+
+**List security groups for all pods in the current namespace:**
 ```bash
-kubectl sgmap pod -n test
+kubectl sgmap pod
+```
+
+**List security groups for all pods in a specific namespace:**
+```bash
+kubectl sgmap pod -n <namespace>
+```
+*Example Output:*
+```
 POD NAME                  IP ADDRESS       ENI ID                  SECURITY GROUP IDS
 xxxxx-123455678-12345     192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
 xxxxx-123455678-12346     192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
 ~snip~
 ```
 
-Support output options `--output` and `-o` to change the format.
-The default is `table`. Other options are `json` and `yaml`.
+**List security groups for a specific pod:**
+```bash
+kubectl sgmap pod <pod-name> -n <namespace>
+```
+
+**List security groups for all pods in all namespaces:**
+```bash
+kubectl sgmap pod -A
+```
+
+**Output in JSON or YAML format:**
+```bash
+kubectl sgmap pod -n <namespace> -o json
+```
+
+The plugin supports all standard `kubectl` flags like `--namespace`, `--context`, and `--kubeconfig`.
 
 ## Contributing
 
