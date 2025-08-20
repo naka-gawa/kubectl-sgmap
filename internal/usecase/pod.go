@@ -4,23 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
-	"github.com/naka-gawa/kubectl-sgmap/pkg/kubernetes"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/output"
 )
-
-var newK8sClient func() (kubernetes.Interface, error) = func() (kubernetes.Interface, error) {
-	return kubernetes.NewClient()
-}
 
 // PodOptions contains options for the pod command
 type PodOptions struct {
 	PodName       string
-	Namespace     string
-	AllNamespaces bool
 	OutputFormat  string
+	AllNamespaces *bool
+	ConfigFlags   *genericclioptions.ConfigFlags
 	IOStreams     *genericclioptions.IOStreams
 	K8sClient     kubernetes.Interface
 	AWSClient     aws.Interface
@@ -29,31 +27,56 @@ type PodOptions struct {
 // NewPodOptions creates new PodOptions with default values
 func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 	return &PodOptions{
-		IOStreams: streams,
+		AllNamespaces: new(bool),
+		ConfigFlags:   genericclioptions.NewConfigFlags(true),
+		IOStreams:     streams,
 	}
 }
 
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
-	if o.K8sClient == nil {
-		var err error
-		o.K8sClient, err = newK8sClient()
+	var clientset kubernetes.Interface
+	if o.K8sClient != nil {
+		clientset = o.K8sClient
+	} else {
+		config, err := o.ConfigFlags.ToRESTConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load kubeconfig: %w", err)
+		}
+
+		cs, err := kubernetes.NewForConfig(config)
 		if err != nil {
 			return fmt.Errorf("failed to create kubernetes client: %w", err)
 		}
+		clientset = cs
 	}
 
 	if o.AWSClient == nil {
-		var err error
-		o.AWSClient, err = aws.NewClient()
+		awsClient, err := aws.NewClient()
 		if err != nil {
 			return fmt.Errorf("failed to create aws client: %w", err)
 		}
+		o.AWSClient = awsClient
 	}
 
-	pods, err := o.K8sClient.GetPods(ctx, o.Namespace, o.PodName, o.AllNamespaces)
+	namespace, err := o.getNamespace()
 	if err != nil {
-		return fmt.Errorf("failed to get pods: %w", err)
+		return fmt.Errorf("failed to get namespace: %w", err)
+	}
+
+	var pods []corev1.Pod
+	if o.PodName != "" {
+		pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, o.PodName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get pod %s in namespace %s: %w", o.PodName, namespace, err)
+		}
+		pods = []corev1.Pod{*pod}
+	} else {
+		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to list pods in namespace %s: %w", namespace, err)
+		}
+		pods = podList.Items
 	}
 
 	if len(pods) == 0 {
@@ -72,4 +95,17 @@ func (o *PodOptions) Run(ctx context.Context) error {
 	}
 
 	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
+}
+
+func (o *PodOptions) getNamespace() (string, error) {
+	namespace, _, err := o.ConfigFlags.ToRawKubeConfigLoader().Namespace()
+	if err != nil {
+		return "", err
+	}
+
+	if o.AllNamespaces != nil && *o.AllNamespaces {
+		return "", nil
+	}
+
+	return namespace, nil
 }
