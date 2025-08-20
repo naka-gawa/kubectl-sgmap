@@ -36,8 +36,6 @@ func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
 	var clientset kubernetes.Interface
-	var err error
-
 	if o.K8sClient != nil {
 		clientset = o.K8sClient
 	} else {
@@ -46,17 +44,19 @@ func (o *PodOptions) Run(ctx context.Context) error {
 			return fmt.Errorf("failed to load kubeconfig: %w", err)
 		}
 
-		clientset, err = kubernetes.NewForConfig(config)
+		cs, err := kubernetes.NewForConfig(config)
 		if err != nil {
 			return fmt.Errorf("failed to create kubernetes client: %w", err)
 		}
+		clientset = cs
 	}
 
 	if o.AWSClient == nil {
-		o.AWSClient, err = aws.NewClient()
+		awsClient, err := aws.NewClient()
 		if err != nil {
 			return fmt.Errorf("failed to create aws client: %w", err)
 		}
+		o.AWSClient = awsClient
 	}
 
 	namespace, err := o.getNamespace()
