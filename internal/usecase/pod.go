@@ -27,7 +27,7 @@ type PodOptions struct {
 // NewPodOptions creates new PodOptions with default values
 func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 	return &PodOptions{
-		AllNamespaces: &false,
+		AllNamespaces: new(bool),
 		ConfigFlags:   genericclioptions.NewConfigFlags(true),
 		IOStreams:     streams,
 	}
@@ -103,7 +103,7 @@ func (o *PodOptions) getNamespace() (string, error) {
 		return "", err
 	}
 
-	if *o.AllNamespaces {
+	if o.AllNamespaces != nil && *o.AllNamespaces {
 		return "", nil
 	}
 
