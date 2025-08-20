@@ -10,6 +10,8 @@ import (
 
 const pluginPrefix = "kubectl-"
 
+// isKubectlPlugin detects if the binary is being executed as a kubectl plugin
+// by checking if the executable name starts with 'kubectl-'.
 func isKubectlPlugin() bool {
 	return strings.HasPrefix(filepath.Base(os.Args[0]), pluginPrefix)
 }
