@@ -81,7 +81,13 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 	for _, r := range results {
 		var sgs []string
 		for _, sg := range r.SecurityGroups {
-			sgs = append(sgs, fmt.Sprintf("%s (%s)", awsSDK.ToString(sg.GroupId), awsSDK.ToString(sg.GroupName)))
+			sgID := awsSDK.ToString(sg.GroupId)
+			sgName := awsSDK.ToString(sg.GroupName)
+			if sgName != "" {
+				sgs = append(sgs, fmt.Sprintf("%s (%s)", sgID, sgName))
+			} else {
+				sgs = append(sgs, sgID)
+			}
 		}
 		podIP := ""
 		if r.Pod.Status.PodIP != "" {
