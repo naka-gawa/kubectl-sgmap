@@ -9,8 +9,8 @@ import (
 func NewSgmapCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sgmap",
-		Short: "Display security group information for Kubernetes workloads",
-		Long:  `Display security group information for Kubernetes workloads running on AWS`,
+		Short: "A kubectl plugin to display security group information for Kubernetes workloads",
+		Long:  `A kubectl plugin to display security group information for Kubernetes workloads running on AWS`,
 	}
 
 	cmd.AddCommand(NewPodCommand(streams))
