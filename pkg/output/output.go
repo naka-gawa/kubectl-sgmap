@@ -76,7 +76,7 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 // outputTable outputs the data in table format
 func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tSECURITY GROUP IDS\tINTERFACE TYPE")
+	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tINTERFACE TYPE\tSECURITY GROUP IDS")
 
 	for _, r := range results {
 		var sgIDs []string
@@ -87,8 +87,8 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 			r.Pod.Name,
 			r.Pod.Status.PodIP,
 			r.ENI,
-			strings.Join(sgIDs, ", "),
 			r.InterfaceType,
+			strings.Join(sgIDs, ", "),
 		)
 	}
 
