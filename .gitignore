@@ -49,3 +49,4 @@ shared/repos/*
 
 .tmp
 dist/
+kubectl-sgmap
