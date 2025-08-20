@@ -43,6 +43,7 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 		PodName        string `yaml:"podName"`
 		Namespace      string `yaml:"namespace"`
 		ENI            string `yaml:"eni"`
+		InterfaceType  string `yaml:"interfaceType"`
 		SecurityGroups []sg   `yaml:"securityGroups"`
 	}
 
@@ -59,6 +60,7 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 			PodName:        d.Pod.Name,
 			Namespace:      d.Pod.Namespace,
 			ENI:            d.ENI,
+			InterfaceType:  d.InterfaceType,
 			SecurityGroups: groups,
 		})
 	}
@@ -74,22 +76,19 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 // outputTable outputs the data in table format
 func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "NAMESPACE\tPOD\tENI\tINTERFACE TYPE\tSECURITY GROUP ID\tSECURITY GROUP NAME")
+	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tSECURITY GROUP IDS\tINTERFACE TYPE")
 
 	for _, r := range results {
 		var sgIDs []string
-		var sgNames []string
 		for _, sg := range r.SecurityGroups {
 			sgIDs = append(sgIDs, awsSDK.ToString(sg.GroupId))
-			sgNames = append(sgNames, awsSDK.ToString(sg.GroupName))
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			r.Pod.Namespace,
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 			r.Pod.Name,
+			r.Pod.Status.PodIP,
 			r.ENI,
-			r.InterfaceType,
 			strings.Join(sgIDs, ", "),
-			strings.Join(sgNames, ", "),
+			r.InterfaceType,
 		)
 	}
 

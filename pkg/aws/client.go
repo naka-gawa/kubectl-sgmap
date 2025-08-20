@@ -25,10 +25,10 @@ type Interface interface {
 
 // PodSecurityGroupInfo represents the security group information associated with a Pod
 type PodSecurityGroupInfo struct {
-	Pod            corev1.Pod
-	SecurityGroups []types.SecurityGroup
-	ENI            string
-	InterfaceType  string
+	Pod            corev1.Pod            `json:"pod" yaml:"pod"`
+	SecurityGroups []types.SecurityGroup `json:"securityGroups" yaml:"securityGroups"`
+	ENI            string                `json:"eni" yaml:"eni"`
+	InterfaceType  string                `json:"interfaceType" yaml:"interfaceType"`
 }
 
 // NewClient creates a new AWS EC2 client
