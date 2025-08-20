@@ -103,7 +103,7 @@ func (o *PodOptions) getNamespace() (string, error) {
 		return "", err
 	}
 
-	if o.AllNamespaces != nil && *o.AllNamespaces {
+	if *o.AllNamespaces {
 		return "", nil
 	}
 
