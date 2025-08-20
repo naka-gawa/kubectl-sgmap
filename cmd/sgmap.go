@@ -7,12 +7,16 @@ import (
 
 // NewSgmapCommand creates the sgmap command
 func NewSgmapCommand(streams *genericclioptions.IOStreams) *cobra.Command {
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
+
 	cmd := &cobra.Command{
 		Use:   "sgmap",
 		Short: "Display security group information for Kubernetes workloads",
 		Long:  `Display security group information for Kubernetes workloads running on AWS`,
 	}
 
-	cmd.AddCommand(NewPodCommand(streams))
+	kubeConfigFlags.AddFlags(cmd.PersistentFlags())
+
+	cmd.AddCommand(NewPodCommand(streams, kubeConfigFlags))
 	return cmd
 }

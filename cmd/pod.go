@@ -7,8 +7,8 @@ import (
 	"github.com/naka-gawa/kubectl-sgmap/internal/usecase"
 )
 
-func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
-	o := usecase.NewPodOptions(streams)
+func NewPodCommand(streams *genericclioptions.IOStreams, kubeConfigFlags *genericclioptions.ConfigFlags) *cobra.Command {
+	o := usecase.NewPodOptions(streams, kubeConfigFlags)
 	cmd := &cobra.Command{
 		Use:     "pod [NAME]",
 		Aliases: []string{"pods", "po"},
@@ -20,14 +20,13 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			if o.AllNamespaces {
-				o.Namespace = ""
+				*o.ConfigFlags.Namespace = ""
 			}
 
 			return o.Run(cmd.Context())
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", "", "namespace of the pod")
 	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|yaml|table)")
 	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 

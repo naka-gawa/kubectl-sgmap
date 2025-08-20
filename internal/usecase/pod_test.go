@@ -15,19 +15,18 @@ import (
 	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
-	"github.com/naka-gawa/kubectl-sgmap/pkg/kubernetes"
 )
 
 type fakeK8sClient struct {
-	GetPodsFunc func(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error)
+	GetPodsFunc func(ctx context.Context, namespace, podName string) ([]corev1.Pod, error)
 }
 
 type fakeAWSClient struct {
 	FetchSecurityGroupsByPodsFunc func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error)
 }
 
-func (f *fakeK8sClient) GetPods(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error) {
-	return f.GetPodsFunc(ctx, namespace, podName, allNamespaces)
+func (f *fakeK8sClient) GetPods(ctx context.Context, namespace, podName string) ([]corev1.Pod, error) {
+	return f.GetPodsFunc(ctx, namespace, podName)
 }
 
 func (f *fakeAWSClient) FetchSecurityGroupsByPods(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
@@ -55,7 +54,14 @@ func runPodOptionsTest(t *testing.T, o *PodOptions, wantErr bool, checkOutput fu
 	}
 }
 
+func newTestConfigFlags(namespace string) *genericclioptions.ConfigFlags {
+	return &genericclioptions.ConfigFlags{
+		Namespace: &namespace,
+	}
+}
+
 func TestPodOptions_Run(t *testing.T) {
+	testNamespace := "default"
 	test := []struct {
 		name         string
 		kc           *fakeK8sClient
@@ -68,7 +74,7 @@ func TestPodOptions_Run(t *testing.T) {
 		{
 			name: "no pods found",
 			kc: &fakeK8sClient{
-				GetPodsFunc: func(ctx context.Context, ns, name string, all bool) ([]corev1.Pod, error) {
+				GetPodsFunc: func(ctx context.Context, ns, name string) ([]corev1.Pod, error) {
 					return []corev1.Pod{}, nil
 				},
 			},
@@ -91,7 +97,7 @@ func TestPodOptions_Run(t *testing.T) {
 			name:         "json output",
 			outputFormat: "json",
 			kc: &fakeK8sClient{
-				GetPodsFunc: func(ctx context.Context, ns, name string, all bool) ([]corev1.Pod, error) {
+				GetPodsFunc: func(ctx context.Context, ns, name string) ([]corev1.Pod, error) {
 					return []corev1.Pod{
 						{
 							ObjectMeta: metav1.ObjectMeta{
@@ -136,7 +142,7 @@ func TestPodOptions_Run(t *testing.T) {
 			name:         "yaml output",
 			outputFormat: "yaml",
 			kc: &fakeK8sClient{
-				GetPodsFunc: func(ctx context.Context, ns, name string, all bool) ([]corev1.Pod, error) {
+				GetPodsFunc: func(ctx context.Context, ns, name string) ([]corev1.Pod, error) {
 					return []corev1.Pod{
 						{
 							ObjectMeta: metav1.ObjectMeta{
@@ -181,7 +187,7 @@ func TestPodOptions_Run(t *testing.T) {
 			name:         "structured data validation",
 			outputFormat: "json",
 			kc: &fakeK8sClient{
-				GetPodsFunc: func(ctx context.Context, ns, name string, all bool) ([]corev1.Pod, error) {
+				GetPodsFunc: func(ctx context.Context, ns, name string) ([]corev1.Pod, error) {
 					return []corev1.Pod{
 						{
 							ObjectMeta: metav1.ObjectMeta{
@@ -234,7 +240,7 @@ func TestPodOptions_Run(t *testing.T) {
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			o := &PodOptions{
-				Namespace: "default",
+				ConfigFlags: newTestConfigFlags(testNamespace),
 				IOStreams: &genericclioptions.IOStreams{
 					Out:    tt.gotOutput,
 					ErrOut: io.Discard,
@@ -251,14 +257,14 @@ func TestPodOptions_Run(t *testing.T) {
 func TestPodOptions_K8sClientCreationError(t *testing.T) {
 	t.Helper()
 
-	original := newK8sClient
-	newK8sClient = func() (kubernetes.Interface, error) {
-		return nil, fmt.Errorf("mock k8s error")
+	// Provide invalid kubeconfig path to trigger an error
+	invalidPath := "/tmp/non-existent-kubeconfig"
+	configFlags := &genericclioptions.ConfigFlags{
+		KubeConfig: &invalidPath,
 	}
-	defer func() { newK8sClient = original }()
 
 	o := &PodOptions{
-		Namespace: "default",
+		ConfigFlags: configFlags,
 		IOStreams: &genericclioptions.IOStreams{
 			Out:    &bytes.Buffer{},
 			ErrOut: io.Discard,
@@ -275,20 +281,21 @@ func TestPodOptions_K8sClientCreationError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "mock k8s error") {
+	if !strings.Contains(err.Error(), "failed to load kubeconfig") {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
 
 func TestPodOptions_AWSClientError(t *testing.T) {
+	testNamespace := "default"
 	o := &PodOptions{
-		Namespace: "default",
+		ConfigFlags: newTestConfigFlags(testNamespace),
 		IOStreams: &genericclioptions.IOStreams{
 			Out:    &bytes.Buffer{},
 			ErrOut: io.Discard,
 		},
 		K8sClient: &fakeK8sClient{
-			GetPodsFunc: func(ctx context.Context, ns, name string, all bool) ([]corev1.Pod, error) {
+			GetPodsFunc: func(ctx context.Context, ns, name string) ([]corev1.Pod, error) {
 				return []corev1.Pod{
 					{Status: corev1.PodStatus{Phase: corev1.PodRunning, PodIP: "10.0.0.1"}},
 				}, nil

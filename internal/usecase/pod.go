@@ -11,33 +11,33 @@ import (
 	"github.com/naka-gawa/kubectl-sgmap/pkg/output"
 )
 
-var newK8sClient func() (kubernetes.Interface, error) = func() (kubernetes.Interface, error) {
-	return kubernetes.NewClient()
-}
-
 // PodOptions contains options for the pod command
 type PodOptions struct {
 	PodName       string
-	Namespace     string
 	AllNamespaces bool
 	OutputFormat  string
 	IOStreams     *genericclioptions.IOStreams
+	ConfigFlags   *genericclioptions.ConfigFlags
 	K8sClient     kubernetes.Interface
 	AWSClient     aws.Interface
 }
 
 // NewPodOptions creates new PodOptions with default values
-func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
+func NewPodOptions(streams *genericclioptions.IOStreams, kubeConfigFlags *genericclioptions.ConfigFlags) *PodOptions {
 	return &PodOptions{
-		IOStreams: streams,
+		IOStreams:   streams,
+		ConfigFlags: kubeConfigFlags,
 	}
 }
 
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
 	if o.K8sClient == nil {
-		var err error
-		o.K8sClient, err = newK8sClient()
+		config, err := o.ConfigFlags.ToRESTConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load kubeconfig: %w", err)
+		}
+		o.K8sClient, err = kubernetes.NewClient(config)
 		if err != nil {
 			return fmt.Errorf("failed to create kubernetes client: %w", err)
 		}
@@ -51,7 +51,12 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		}
 	}
 
-	pods, err := o.K8sClient.GetPods(ctx, o.Namespace, o.PodName, o.AllNamespaces)
+	namespace := *o.ConfigFlags.Namespace
+	if o.AllNamespaces {
+		namespace = ""
+	}
+
+	pods, err := o.K8sClient.GetPods(ctx, namespace, o.PodName)
 	if err != nil {
 		return fmt.Errorf("failed to get pods: %w", err)
 	}

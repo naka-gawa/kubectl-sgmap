@@ -25,10 +25,10 @@ type Interface interface {
 
 // PodSecurityGroupInfo represents the security group information associated with a Pod
 type PodSecurityGroupInfo struct {
-	Pod            corev1.Pod            `json:"pod" yaml:"pod"`
-	SecurityGroups []types.SecurityGroup `json:"securityGroups" yaml:"securityGroups"`
-	ENI            string                `json:"eni" yaml:"eni"`
-	AttachmentLevel string               `json:"attachmentLevel" yaml:"attachmentLevel"`
+	Pod             corev1.Pod            `json:"pod" yaml:"pod"`
+	SecurityGroups  []types.SecurityGroup `json:"securityGroups" yaml:"securityGroups"`
+	ENI             string                `json:"eni" yaml:"eni"`
+	AttachmentLevel string                `json:"attachmentLevel" yaml:"attachmentLevel"`
 }
 
 // NewClient creates a new AWS EC2 client
@@ -143,10 +143,10 @@ func buildPodSecurityGroupInfo(
 				sgs = append(sgs, sg)
 			}
 		}
-		
+
 		// Determine attachment level based on ENI characteristics
 		attachmentLevel := determineAttachmentLevel(eniMap[eniID])
-		
+
 		result = append(result, PodSecurityGroupInfo{
 			Pod:             pod,
 			ENI:             eniID,
@@ -162,12 +162,12 @@ func determineAttachmentLevel(eni types.NetworkInterface) string {
 	// Check ENI type and description to determine attachment level
 	interfaceType := string(eni.InterfaceType)
 	description := aws.ToString(eni.Description)
-	
+
 	// AWS EKS patterns for different attachment levels
 	if interfaceType == "branch" {
 		return "pod"
 	}
-	
+
 	if interfaceType == "interface" {
 		// Check description for common patterns
 		if description != "" {
@@ -182,12 +182,12 @@ func determineAttachmentLevel(eni types.NetworkInterface) string {
 		}
 		return "node" // Default for interface type
 	}
-	
+
 	// For other types, try to infer from description or default to node
 	if description != "" && containsAny(description, []string{"pod", "Pod"}) {
 		return "pod"
 	}
-	
+
 	return "node" // Default fallback
 }
 

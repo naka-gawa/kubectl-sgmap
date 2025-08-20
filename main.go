@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/naka-gawa/kubectl-sgmap/cmd"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/rest"
 )
 
 // Client provides Kubernetes API access
@@ -18,20 +18,11 @@ type Client struct {
 // Interface defines the methods provided by the AWS EC2 client.
 // Used for dependency injection and testing.
 type Interface interface {
-	GetPods(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error)
+	GetPods(ctx context.Context, namespace, podName string) ([]corev1.Pod, error)
 }
 
 // NewClient creates a new Kubernetes client
-func NewClient() (*Client, error) {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	configOverrides := &clientcmd.ConfigOverrides{}
-	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-
-	config, err := kubeConfig.ClientConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load kubeconfig: %w", err)
-	}
-
+func NewClient(config *rest.Config) (*Client, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kubernetes client: %w", err)
@@ -43,22 +34,7 @@ func NewClient() (*Client, error) {
 }
 
 // GetPods retrieves pod information from the Kubernetes API
-func (c *Client) GetPods(ctx context.Context, namespace, podName string, allNamespaces bool) ([]corev1.Pod, error) {
-	if allNamespaces {
-		namespace = ""
-	} else if namespace == "" {
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		configOverrides := &clientcmd.ConfigOverrides{}
-		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-
-		ns, _, err := kubeConfig.Namespace()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current namespace: %w", err)
-		}
-
-		namespace = ns
-	}
-
+func (c *Client) GetPods(ctx context.Context, namespace, podName string) ([]corev1.Pod, error) {
 	if podName != "" {
 		pod, err := c.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
