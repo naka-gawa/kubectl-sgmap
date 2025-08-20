@@ -82,9 +82,9 @@ kubectl sgmap pod -n [NameSpace]
 
 ```bash
 kubectl sgmap pod -n test
-POD NAME                  IP ADDRESS       ENI ID                  SECURITY GROUP IDS
-xxxxx-123455678-12345     192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
-xxxxx-123455678-12346     192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
+NAMESPACE   POD                     ENI                     INTERFACE TYPE   SECURITY GROUP ID          SECURITY GROUP NAME
+test        xxxxx-123455678-12345   eni-123456789abcdefgh   trunk            sg-0123456789abcdefg       my-security-group
+test        xxxxx-123455678-12346   eni-123456789abcdefgh   branch           sg-0123456789abcdefg       my-security-group
 ~snip~
 ```
 
