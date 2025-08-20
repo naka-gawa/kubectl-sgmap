@@ -85,7 +85,13 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 			r.Pod.Name,
-			r.Pod.Status.PodIP,
+		podIP := ""
+		if r.Pod.Status != nil {
+			podIP = r.Pod.Status.PodIP
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
+			r.Pod.Name,
+			podIP,
 			r.ENI,
 			r.AttachmentLevel,
 			strings.Join(sgIDs, ", "),
