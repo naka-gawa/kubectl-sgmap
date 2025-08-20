@@ -45,7 +45,7 @@ func (o *PodOptions) Run(ctx context.Context) error {
 
 	if o.AWSClient == nil {
 		var err error
-		o.AWSClient, err = aws.NewClient()
+		o.AWSClient, err = aws.NewClient(nil)
 		if err != nil {
 			return fmt.Errorf("failed to create aws client: %w", err)
 		}
