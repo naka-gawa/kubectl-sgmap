@@ -83,10 +83,8 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 		for _, sg := range r.SecurityGroups {
 			sgIDs = append(sgIDs, awsSDK.ToString(sg.GroupId))
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
-			r.Pod.Name,
 		podIP := ""
-		if r.Pod.Status != nil {
+		if r.Pod.Status.PodIP != "" {
 			podIP = r.Pod.Status.PodIP
 		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
