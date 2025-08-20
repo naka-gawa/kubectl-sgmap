@@ -40,11 +40,11 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 	}
 
 	type out struct {
-		PodName        string `yaml:"podName"`
-		Namespace      string `yaml:"namespace"`
-		ENI            string `yaml:"eni"`
-		InterfaceType  string `yaml:"interfaceType"`
-		SecurityGroups []sg   `yaml:"securityGroups"`
+		PodName         string `yaml:"podName"`
+		Namespace       string `yaml:"namespace"`
+		ENI             string `yaml:"eni"`
+		AttachmentLevel string `yaml:"attachmentLevel"`
+		SecurityGroups  []sg   `yaml:"securityGroups"`
 	}
 
 	var converted []out
@@ -57,11 +57,11 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 			})
 		}
 		converted = append(converted, out{
-			PodName:        d.Pod.Name,
-			Namespace:      d.Pod.Namespace,
-			ENI:            d.ENI,
-			InterfaceType:  d.InterfaceType,
-			SecurityGroups: groups,
+			PodName:         d.Pod.Name,
+			Namespace:       d.Pod.Namespace,
+			ENI:             d.ENI,
+			AttachmentLevel: d.AttachmentLevel,
+			SecurityGroups:  groups,
 		})
 	}
 
@@ -76,7 +76,7 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 // outputTable outputs the data in table format
 func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tINTERFACE TYPE\tSECURITY GROUP IDS")
+	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tATTACHMENT\tSECURITY GROUP IDS")
 
 	for _, r := range results {
 		var sgIDs []string
@@ -87,7 +87,7 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 			r.Pod.Name,
 			r.Pod.Status.PodIP,
 			r.ENI,
-			r.InterfaceType,
+			r.AttachmentLevel,
 			strings.Join(sgIDs, ", "),
 		)
 	}

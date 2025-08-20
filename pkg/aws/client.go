@@ -28,7 +28,7 @@ type PodSecurityGroupInfo struct {
 	Pod            corev1.Pod            `json:"pod" yaml:"pod"`
 	SecurityGroups []types.SecurityGroup `json:"securityGroups" yaml:"securityGroups"`
 	ENI            string                `json:"eni" yaml:"eni"`
-	InterfaceType  string                `json:"interfaceType" yaml:"interfaceType"`
+	AttachmentLevel string               `json:"attachmentLevel" yaml:"attachmentLevel"`
 }
 
 // NewClient creates a new AWS EC2 client
@@ -143,18 +143,66 @@ func buildPodSecurityGroupInfo(
 				sgs = append(sgs, sg)
 			}
 		}
-		interfaceType := ""
-		if eni, ok := eniMap[eniID]; ok {
-			interfaceType = string(eni.InterfaceType)
-		}
+		
+		// Determine attachment level based on ENI characteristics
+		attachmentLevel := determineAttachmentLevel(eniMap[eniID])
+		
 		result = append(result, PodSecurityGroupInfo{
-			Pod:            pod,
-			ENI:            eniID,
-			SecurityGroups: sgs,
-			InterfaceType:  interfaceType,
+			Pod:             pod,
+			ENI:             eniID,
+			SecurityGroups:  sgs,
+			AttachmentLevel: attachmentLevel,
 		})
 	}
 	return result
+}
+
+// determineAttachmentLevel determines where the security group is attached based on ENI characteristics
+func determineAttachmentLevel(eni types.NetworkInterface) string {
+	// Check ENI type and description to determine attachment level
+	interfaceType := string(eni.InterfaceType)
+	description := aws.ToString(eni.Description)
+	
+	// AWS EKS patterns for different attachment levels
+	if interfaceType == "branch" {
+		return "pod"
+	}
+	
+	if interfaceType == "interface" {
+		// Check description for common patterns
+		if description != "" {
+			// EKS node ENIs typically have descriptions mentioning "EKS" or node group
+			if containsAny(description, []string{"eks", "EKS", "node", "Node"}) {
+				return "node"
+			}
+			// VPC CNI trunk interface
+			if containsAny(description, []string{"trunk", "Trunk"}) {
+				return "node"
+			}
+		}
+		return "node" // Default for interface type
+	}
+	
+	// For other types, try to infer from description or default to node
+	if description != "" && containsAny(description, []string{"pod", "Pod"}) {
+		return "pod"
+	}
+	
+	return "node" // Default fallback
+}
+
+// containsAny checks if the string contains any of the given substrings
+func containsAny(s string, substrings []string) bool {
+	for _, substring := range substrings {
+		if len(s) >= len(substring) {
+			for i := 0; i <= len(s)-len(substring); i++ {
+				if s[i:i+len(substring)] == substring {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // GetENIsByPrivateIPs retrieves network interfaces from EC2 based on private IP addresses using batch processing
