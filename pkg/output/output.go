@@ -76,12 +76,18 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 // outputTable outputs the data in table format
 func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tATTACHMENT\tSECURITY GROUP IDS")
+	fmt.Fprintln(tw, "POD NAME\tIP ADDRESS\tENI ID\tATTACHMENT\tSECURITY GROUPS")
 
 	for _, r := range results {
-		var sgIDs []string
+		var sgs []string
 		for _, sg := range r.SecurityGroups {
-			sgIDs = append(sgIDs, awsSDK.ToString(sg.GroupId))
+			sgID := awsSDK.ToString(sg.GroupId)
+			sgName := awsSDK.ToString(sg.GroupName)
+			if sgName != "" {
+				sgs = append(sgs, fmt.Sprintf("%s (%s)", sgID, sgName))
+			} else {
+				sgs = append(sgs, sgID)
+			}
 		}
 		podIP := ""
 		if r.Pod.Status.PodIP != "" {
@@ -92,7 +98,7 @@ func outputTable(w io.Writer, results []aws.PodSecurityGroupInfo) error {
 			podIP,
 			r.ENI,
 			r.AttachmentLevel,
-			strings.Join(sgIDs, ", "),
+			strings.Join(sgs, ", "),
 		)
 	}
 
