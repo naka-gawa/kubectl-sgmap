@@ -23,6 +23,8 @@ func Execute() error {
 	rootCmd := NewSgmapCommand(&streams)
 	rootCmd.AddCommand(newVersionCommand())
 
+	setKubectlPluginName(rootCmd, "sgmap")
+
 	return rootCmd.Execute()
 }
 
