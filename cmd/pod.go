@@ -1,3 +1,4 @@
+// Package cmd provides the command-line interface for kubectl-sgmap.
 package cmd
 
 import (

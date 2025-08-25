@@ -1,3 +1,4 @@
+// Package aws provides utilities for interacting with AWS EC2 APIs, including fetching ENIs and security groups.
 package aws
 
 import (

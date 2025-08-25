@@ -12,6 +12,10 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage.out
+coverage.html
+cover.out
+cover.html
 *.lcov
 
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
@@ -49,3 +53,4 @@ shared/repos/*
 
 .tmp
 dist/
+

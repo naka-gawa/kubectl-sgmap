@@ -1,3 +1,4 @@
+// Package usecase provides business logic for kubectl-sgmap commands.
 package usecase
 
 import (
@@ -57,7 +58,6 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create aws client: %w", err)
 		}
-		o.AWSClient = awsClient
 	}
 
 	namespace, err := o.getNamespace()
@@ -67,15 +67,15 @@ func (o *PodOptions) Run(ctx context.Context) error {
 
 	var pods []corev1.Pod
 	if o.PodName != "" {
-		pod, err := clientset.CoreV1().Pods(namespace).Get(ctx, o.PodName, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get pod %s in namespace %s: %w", o.PodName, namespace, err)
+		pod, getErr := clientset.CoreV1().Pods(namespace).Get(ctx, o.PodName, metav1.GetOptions{})
+		if getErr != nil {
+			return fmt.Errorf("failed to get pod %s in namespace %s: %w", o.PodName, namespace, getErr)
 		}
 		pods = []corev1.Pod{*pod}
 	} else {
-		podList, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to list pods in namespace %s: %w", namespace, err)
+		podList, listErr := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		if listErr != nil {
+			return fmt.Errorf("failed to list pods in namespace %s: %w", namespace, listErr)
 		}
 		pods = podList.Items
 	}
