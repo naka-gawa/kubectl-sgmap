@@ -6,11 +6,10 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
+	"github.com/naka-gawa/kubectl-sgmap/pkg/kubernetes"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/output"
 )
 
@@ -36,20 +35,13 @@ func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 
 // Run executes the pod command business logic
 func (o *PodOptions) Run(ctx context.Context) error {
-	var clientset kubernetes.Interface
-	if o.K8sClient != nil {
-		clientset = o.K8sClient
-	} else {
-		config, err := o.ConfigFlags.ToRESTConfig()
+	k8sClient := o.K8sClient
+	if k8sClient == nil {
+		var err error
+		k8sClient, err = kubernetes.NewClient(o.ConfigFlags)
 		if err != nil {
-			return fmt.Errorf("failed to load kubeconfig: %w", err)
+			return err
 		}
-
-		cs, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("failed to create kubernetes client: %w", err)
-		}
-		clientset = cs
 	}
 
 	if o.AWSClient == nil {
@@ -67,17 +59,17 @@ func (o *PodOptions) Run(ctx context.Context) error {
 
 	var pods []corev1.Pod
 	if o.PodName != "" {
-		pod, getErr := clientset.CoreV1().Pods(namespace).Get(ctx, o.PodName, metav1.GetOptions{})
-		if getErr != nil {
-			return fmt.Errorf("failed to get pod %s in namespace %s: %w", o.PodName, namespace, getErr)
+		pod, err := k8sClient.GetPod(ctx, o.PodName, namespace)
+		if err != nil {
+			return err
 		}
 		pods = []corev1.Pod{*pod}
 	} else {
-		podList, listErr := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-		if listErr != nil {
-			return fmt.Errorf("failed to list pods in namespace %s: %w", namespace, listErr)
+		var err error
+		pods, err = k8sClient.ListPods(ctx, namespace)
+		if err != nil {
+			return err
 		}
-		pods = podList.Items
 	}
 
 	if len(pods) == 0 {

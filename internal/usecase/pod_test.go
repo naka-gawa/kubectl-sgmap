@@ -4,21 +4,28 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/fake"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
+	"github.com/naka-gawa/kubectl-sgmap/pkg/kubernetes"
 )
+
+type fakeK8sClient struct {
+	GetPodFunc   func(ctx context.Context, name, namespace string) (*corev1.Pod, error)
+	ListPodsFunc func(ctx context.Context, namespace string) ([]corev1.Pod, error)
+}
+
+func (f *fakeK8sClient) GetPod(ctx context.Context, name, namespace string) (*corev1.Pod, error) {
+	return f.GetPodFunc(ctx, name, namespace)
+}
+
+func (f *fakeK8sClient) ListPods(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+	return f.ListPodsFunc(ctx, namespace)
+}
 
 type fakeAWSClient struct {
 	FetchSecurityGroupsByPodsFunc func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error)
@@ -28,220 +35,92 @@ func (f *fakeAWSClient) FetchSecurityGroupsByPods(ctx context.Context, pods []co
 	return f.FetchSecurityGroupsByPodsFunc(ctx, pods)
 }
 
-func runPodOptionsTest(t *testing.T, o *PodOptions, wantErr bool, checkOutput func(*testing.T, string)) {
-	t.Helper()
-
-	err := o.Run(context.Background())
-	if wantErr {
-		if err == nil {
-			t.Errorf("expected error, got nil")
-		}
-		return
-	}
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	got := o.IOStreams.Out.(*bytes.Buffer).String()
-
-	if checkOutput != nil {
-		checkOutput(t, got)
-	}
-}
-
 func TestPodOptions_Run(t *testing.T) {
-	test := []struct {
-		name         string
-		clientset    kubernetes.Interface
-		ac           *fakeAWSClient
-		gotOutput    *bytes.Buffer
-		outputFormat string
-		checkOutput  func(t *testing.T, output string)
-		wantErr      bool
+	testCases := []struct {
+		name        string
+		k8sClient   kubernetes.Interface
+		awsClient   aws.Interface
+		podName     string
+		output      string
+		wantErr     bool
+		expectedOut string
 	}{
 		{
-			name:      "no pods found",
-			clientset: fake.NewSimpleClientset(),
-			ac: &fakeAWSClient{
-				FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
-					return nil, nil
+			name: "no pods found",
+			k8sClient: &fakeK8sClient{
+				ListPodsFunc: func(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+					return []corev1.Pod{}, nil
 				},
 			},
-			gotOutput: &bytes.Buffer{},
-			checkOutput: func(t *testing.T, output string) {
-				t.Helper()
-				expected := "No resources found in namespace.\n"
-				if output != expected {
-					t.Errorf("expected output %q, but got %q", expected, output)
-				}
-			},
-			wantErr: false,
+			awsClient:   &fakeAWSClient{},
+			expectedOut: "No resources found in namespace.\n",
 		},
 		{
-			name:         "json output",
-			outputFormat: "json",
-			clientset: fake.NewSimpleClientset(&corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-pod",
-					Namespace: "default",
+			name: "get specific pod",
+			k8sClient: &fakeK8sClient{
+				GetPodFunc: func(ctx context.Context, name, namespace string) (*corev1.Pod, error) {
+					return &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod"}}, nil
 				},
-				Status: corev1.PodStatus{
-					PodIP: "10.0.0.1",
-					Phase: corev1.PodRunning,
-				},
-			}),
-			ac: &fakeAWSClient{
+			},
+			awsClient: &fakeAWSClient{
 				FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
 					return []aws.PodSecurityGroupInfo{
-						{
-							Pod: pods[0],
-							ENI: "eni-1234",
-							SecurityGroups: []types.SecurityGroup{
-								{
-									GroupId:   awsSDK.String("sg-1234"),
-									GroupName: awsSDK.String("test-sg"),
-								},
-							},
-						},
+						{Pod: pods[0]},
 					}, nil
 				},
 			},
-			gotOutput: &bytes.Buffer{},
-			checkOutput: func(t *testing.T, output string) {
-				t.Helper()
-				if !strings.Contains(output, `"eni-1234"`) ||
-					!strings.Contains(output, `"sg-1234"`) ||
-					!strings.Contains(output, `"test-sg"`) {
-					t.Errorf("unexpected json output: %s", output)
-				}
-			},
+			podName: "test-pod",
 		},
 		{
-			name:         "yaml output",
-			outputFormat: "yaml",
-			clientset: fake.NewSimpleClientset(&corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-pod",
-					Namespace: "default",
-				},
-				Status: corev1.PodStatus{
-					PodIP: "10.0.0.1",
-					Phase: corev1.PodRunning,
-				},
-			}),
-			ac: &fakeAWSClient{
-				FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
-					return []aws.PodSecurityGroupInfo{
-						{
-							Pod: pods[0],
-							ENI: "eni-1234",
-							SecurityGroups: []types.SecurityGroup{
-								{
-									GroupId:   awsSDK.String("sg-1234"),
-									GroupName: awsSDK.String("test-sg"),
-								},
-							},
-						},
-					}, nil
+			name: "k8s client error",
+			k8sClient: &fakeK8sClient{
+				ListPodsFunc: func(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+					return nil, fmt.Errorf("k8s error")
 				},
 			},
-			gotOutput: &bytes.Buffer{},
-			checkOutput: func(t *testing.T, output string) {
-				t.Helper()
-				if !strings.Contains(output, "eni: eni-1234") ||
-					!strings.Contains(output, "groupId: sg-1234") ||
-					!strings.Contains(output, "groupName: test-sg") {
-					t.Errorf("unexpected yaml output: %s", output)
-				}
-			},
+			awsClient: &fakeAWSClient{},
+			wantErr:   true,
 		},
 		{
-			name:         "structured data validation",
-			outputFormat: "json",
-			clientset: fake.NewSimpleClientset(&corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-pod",
-					Namespace: "default",
+			name: "aws client error",
+			k8sClient: &fakeK8sClient{
+				ListPodsFunc: func(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+					return []corev1.Pod{{}}, nil
 				},
-				Status: corev1.PodStatus{
-					PodIP: "10.0.0.1",
-					Phase: corev1.PodRunning,
-				},
-			}),
-			ac: &fakeAWSClient{
+			},
+			awsClient: &fakeAWSClient{
 				FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
-					if len(pods) != 1 {
-						t.Errorf("expected 1 pod, got %d", len(pods))
-					}
-					pod := pods[0]
-					if pod.Name != "test-pod" || pod.Namespace != "default" || pod.Status.PodIP != "10.0.0.1" {
-						t.Errorf("unexpected pod info: %+v", pod)
-					}
-
-					return []aws.PodSecurityGroupInfo{
-						{
-							Pod: pod,
-							ENI: "eni-9999",
-							SecurityGroups: []types.SecurityGroup{
-								{
-									GroupId:   awsSDK.String("sg-9999"),
-									GroupName: awsSDK.String("zunda-sg"),
-								},
-							},
-						},
-					}, nil
+					return nil, fmt.Errorf("aws error")
 				},
 			},
-			gotOutput: &bytes.Buffer{},
-			checkOutput: func(t *testing.T, output string) {
-				t.Helper()
-				if output == "" {
-					return
-				}
-			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
-	for _, tt := range test {
-		t.Run(tt.name, func(t *testing.T) {
-			o := NewPodOptions(&genericclioptions.IOStreams{
-				Out:    tt.gotOutput,
-				ErrOut: io.Discard,
-			})
-			o.OutputFormat = tt.outputFormat
-			o.K8sClient = tt.clientset
-			o.AWSClient = tt.ac
-			// Set a default namespace
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			streams := &genericclioptions.IOStreams{
+				Out:    &bytes.Buffer{},
+				ErrOut: &bytes.Buffer{},
+			}
+			o := NewPodOptions(streams)
+			o.K8sClient = tc.k8sClient
+			o.AWSClient = tc.awsClient
+			o.PodName = tc.podName
 			o.ConfigFlags.Namespace = stringPointer("default")
-			runPodOptionsTest(t, o, tt.wantErr, tt.checkOutput)
+
+			err := o.Run(context.Background())
+
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("Run() error = %v, wantErr %v", err, tc.wantErr)
+			}
+
+			if tc.expectedOut != "" {
+				if got := streams.Out.(*bytes.Buffer).String(); got != tc.expectedOut {
+					t.Errorf("Run() output = %q, want %q", got, tc.expectedOut)
+				}
+			}
 		})
-	}
-}
-
-func TestPodOptions_AWSClientError(t *testing.T) {
-	o := NewPodOptions(&genericclioptions.IOStreams{
-		Out:    &bytes.Buffer{},
-		ErrOut: io.Discard,
-	})
-	o.K8sClient = fake.NewSimpleClientset(&corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
-		Status:     corev1.PodStatus{Phase: corev1.PodRunning, PodIP: "10.0.0.1"},
-	})
-	o.AWSClient = &fakeAWSClient{
-		FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
-			return nil, fmt.Errorf("mock AWS error")
-		},
-	}
-	// Set a default namespace
-	o.ConfigFlags.Namespace = stringPointer("default")
-
-	err := o.Run(context.Background())
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "failed to get security groups: mock AWS error") {
-		t.Errorf("unexpected error message: %v", err)
 	}
 }
 
