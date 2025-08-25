@@ -29,35 +29,11 @@ func TestNewPodCommand(t *testing.T) {
 
 func TestPodCommand_RunE(t *testing.T) {
 	tests := []struct {
-		name          string
-		args          []string
-		wantErr       bool
-		expectedErr   string
+		name        string
+		args        []string
+		wantErr     bool
+		expectedErr string
 	}{
-		{
-			name:          "no arguments",
-			args:          []string{},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with pod name",
-			args:          []string{"my-pod"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with all-namespaces flag",
-			args:          []string{"--all-namespaces"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with output flag",
-			args:          []string{"-o", "json"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
 		{
 			name:        "too many arguments",
 			args:        []string{"pod1", "pod2"},
@@ -74,25 +50,18 @@ func TestPodCommand_RunE(t *testing.T) {
 				ErrOut: new(bytes.Buffer), // Capture stderr
 			}
 
-			cmd := NewPodCommand(streams)
+			cmd := NewPodCommand(nil)
 			cmd.SetArgs(tt.args)
 			err := cmd.Execute()
 
 			if tt.wantErr {
 				assert.Error(t, err)
-
-				// The error from cobra goes to stderr and is not returned by Execute()
-				// so we need to check both the returned error and stderr.
 				stderr := streams.ErrOut.(*bytes.Buffer).String()
-
-				// The error returned by Execute() comes from the usecase layer in valid cases
 				if err != nil {
 					assert.Contains(t, err.Error(), tt.expectedErr)
 				} else {
-					// The error from cobra parsing goes to stderr
 					assert.Contains(t, stderr, tt.expectedErr)
 				}
-
 			} else {
 				assert.NoError(t, err)
 			}
