@@ -1,3 +1,4 @@
+// Package aws provides utilities for interacting with AWS EC2 APIs, including fetching ENIs and security groups.
 package aws
 
 import (
@@ -12,9 +13,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// EC2API defines the methods we use from the AWS EC2 client.
+// This is used for dependency injection and testing.
+type EC2API interface {
+	DescribeNetworkInterfaces(ctx context.Context, params *ec2.DescribeNetworkInterfacesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeNetworkInterfacesOutput, error)
+	DescribeSecurityGroups(ctx context.Context, params *ec2.DescribeSecurityGroupsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSecurityGroupsOutput, error)
+}
+
 // Client provides access to AWS EC2 APIs
 type Client struct {
-	ec2Client *ec2.Client
+	ec2Client EC2API
 }
 
 // Interface defines the methods provided by the AWS EC2 client.
@@ -32,14 +40,17 @@ type PodSecurityGroupInfo struct {
 }
 
 // NewClient creates a new AWS EC2 client
-func NewClient() (*Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		return nil, fmt.Errorf("failed to load aws config: %w", err)
+func NewClient(api EC2API) (*Client, error) {
+	if api == nil {
+		cfg, err := config.LoadDefaultConfig(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to load aws config: %w", err)
+		}
+		api = ec2.NewFromConfig(cfg)
 	}
 
 	return &Client{
-		ec2Client: ec2.NewFromConfig(cfg),
+		ec2Client: api,
 	}, nil
 }
 
@@ -178,6 +189,9 @@ func determineAttachmentLevel(eni types.NetworkInterface) string {
 			// VPC CNI trunk interface
 			if containsAny(description, []string{"trunk", "Trunk"}) {
 				return "node"
+			}
+			if containsAny(description, []string{"pod", "Pod"}) {
+				return "pod"
 			}
 		}
 		return "node" // Default for interface type
