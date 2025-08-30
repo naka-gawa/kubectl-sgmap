@@ -15,12 +15,52 @@ func strPtr(s string) *string {
 }
 
 func TestOutputPodSecurityGroups(t *testing.T) {
+	unsortedData := []aws.PodSecurityGroupInfo{
+		{
+			Pod: corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod-c", Namespace: "ns1"},
+				Status:     corev1.PodStatus{PodIP: "10.0.0.3"},
+			},
+			ENI:             "eni-3",
+			AttachmentLevel: "pod-eni",
+			SecurityGroups:  []awsSDK.SecurityGroup{{GroupId: strPtr("sg-c")}},
+		},
+		{
+			Pod: corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod-a", Namespace: "ns1"},
+				Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
+			},
+			ENI:             "eni-1",
+			AttachmentLevel: "node-primary-eni",
+			SecurityGroups:  []awsSDK.SecurityGroup{{GroupId: strPtr("sg-a")}},
+		},
+		{
+			Pod: corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod-b", Namespace: "ns2"},
+				Status:     corev1.PodStatus{PodIP: "10.0.0.2"},
+			},
+			ENI:             "eni-2",
+			AttachmentLevel: "trunk-eni",
+			SecurityGroups:  []awsSDK.SecurityGroup{{GroupId: strPtr("sg-b")}},
+		},
+		{
+			Pod: corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: "pod-d", Namespace: "ns2"},
+				Status:     corev1.PodStatus{PodIP: "10.0.0.10"},
+			},
+			ENI:             "eni-4",
+			AttachmentLevel: "other",
+			SecurityGroups:  []awsSDK.SecurityGroup{{GroupId: strPtr("sg-d")}},
+		},
+	}
+
 	testCases := []struct {
-		name     string
-		format   string
-		data     []aws.PodSecurityGroupInfo
-		expected string
-		wantErr  bool
+		name      string
+		format    string
+		sortField string
+		data      []aws.PodSecurityGroupInfo
+		expected  string
+		wantErr   bool
 	}{
 		// Test cases will be added here
 		{
@@ -41,6 +81,55 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 				},
 			},
 			expected: "POD NAME  IP ADDRESS  ENI ID     ATTACHMENT  SECURITY GROUPS\npod1      10.0.0.1    eni-12345  pod-eni     sg-11111 (sg-name-1), sg-22222\n",
+		},
+		{
+			name:      "sort by pod name",
+			format:    "table",
+			sortField: "pod",
+			data:      unsortedData,
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
+		},
+		{
+			name:      "json output with sorting",
+			format:    "json",
+			sortField: "pod",
+			data:      unsortedData,
+			expected:  "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-a\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-a\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-1\",\n    \"attachmentLevel\": \"node-primary-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-b\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.2\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-b\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-2\",\n    \"attachmentLevel\": \"trunk-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-c\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.3\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-c\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-3\",\n    \"attachmentLevel\": \"pod-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-d\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.10\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-d\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-4\",\n    \"attachmentLevel\": \"other\"\n  }\n]\n",
+		},
+		{
+			name:      "yaml output with sorting",
+			format:    "yaml",
+			sortField: "pod",
+			data:      unsortedData,
+			expected: "- podName: pod-a\n  namespace: ns1\n  eni: eni-1\n  attachmentLevel: node-primary-eni\n  securityGroups:\n    - groupId: sg-a\n      groupName: \"\"\n- podName: pod-b\n  namespace: ns2\n  eni: eni-2\n  attachmentLevel: trunk-eni\n  securityGroups:\n    - groupId: sg-b\n      groupName: \"\"\n- podName: pod-c\n  namespace: ns1\n  eni: eni-3\n  attachmentLevel: pod-eni\n  securityGroups:\n    - groupId: sg-c\n      groupName: \"\"\n- podName: pod-d\n  namespace: ns2\n  eni: eni-4\n  attachmentLevel: other\n  securityGroups:\n    - groupId: sg-d\n      groupName: \"\"\n",
+		},
+		{
+			name:      "sort by ip address",
+			format:    "table",
+			sortField: "ip",
+			data:      unsortedData,
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
+		},
+		{
+			name:      "sort by eni id",
+			format:    "table",
+			sortField: "eni",
+			data:      unsortedData,
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
+		},
+		{
+			name:      "sort by attachment",
+			format:    "table",
+			sortField: "attachment",
+			data:      unsortedData,
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-d     10.0.0.10   eni-4   other             sg-d\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\n",
+		},
+		{
+			name:      "sort by sgids",
+			format:    "table",
+			sortField: "sgids",
+			data:      unsortedData,
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
 		},
 		{
 			name:   "table output with multiple entries",
@@ -250,7 +339,7 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := OutputPodSecurityGroups(&buf, tc.data, tc.format)
+			err := OutputPodSecurityGroups(&buf, tc.data, tc.format, tc.sortField)
 
 			if (err != nil) != tc.wantErr {
 				t.Errorf("unexpected error: %v", err)

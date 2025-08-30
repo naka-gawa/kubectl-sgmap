@@ -17,6 +17,7 @@ import (
 type PodOptions struct {
 	PodName       string
 	OutputFormat  string
+	SortField     string
 	AllNamespaces *bool
 	ConfigFlags   *genericclioptions.ConfigFlags
 	IOStreams     *genericclioptions.IOStreams
@@ -59,16 +60,16 @@ func (o *PodOptions) Run(ctx context.Context) error {
 
 	var pods []corev1.Pod
 	if o.PodName != "" {
-		pod, err := k8sClient.GetPod(ctx, o.PodName, namespace)
-		if err != nil {
-			return err
+		pod, podErr := k8sClient.GetPod(ctx, o.PodName, namespace)
+		if podErr != nil {
+			return podErr
 		}
 		pods = []corev1.Pod{*pod}
 	} else {
-		var err error
-		pods, err = k8sClient.ListPods(ctx, namespace)
-		if err != nil {
-			return err
+		var listErr error
+		pods, listErr = k8sClient.ListPods(ctx, namespace)
+		if listErr != nil {
+			return listErr
 		}
 	}
 
@@ -87,7 +88,7 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		return nil
 	}
 
-	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
+	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat, o.SortField)
 }
 
 func (o *PodOptions) getNamespace() (string, error) {
