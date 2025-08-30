@@ -1,3 +1,4 @@
+// Package output provides functions for formatting and outputting pod security group information.
 package output
 
 import (
@@ -68,7 +69,7 @@ func outputJSON(w io.Writer, data interface{}) error {
 // outputYAML outputs the data in YAML format
 func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 	type sg struct {
-		GroupId   string `yaml:"groupId"`
+		GroupID   string `yaml:"groupId"`
 		GroupName string `yaml:"groupName"`
 	}
 
@@ -85,7 +86,7 @@ func outputYAML(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 		var groups []sg
 		for _, g := range d.SecurityGroups {
 			groups = append(groups, sg{
-				GroupId:   awsSDK.ToString(g.GroupId),
+				GroupID:   awsSDK.ToString(g.GroupId),
 				GroupName: awsSDK.ToString(g.GroupName),
 			})
 		}

@@ -60,16 +60,16 @@ func (o *PodOptions) Run(ctx context.Context) error {
 
 	var pods []corev1.Pod
 	if o.PodName != "" {
-		pod, err := k8sClient.GetPod(ctx, o.PodName, namespace)
-		if err != nil {
-			return err
+		pod, podErr := k8sClient.GetPod(ctx, o.PodName, namespace)
+		if podErr != nil {
+			return podErr
 		}
 		pods = []corev1.Pod{*pod}
 	} else {
-		var err error
-		pods, err = k8sClient.ListPods(ctx, namespace)
-		if err != nil {
-			return err
+		var listErr error
+		pods, listErr = k8sClient.ListPods(ctx, namespace)
+		if listErr != nil {
+			return listErr
 		}
 	}
 
