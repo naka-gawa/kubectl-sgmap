@@ -1,9 +1,12 @@
 package output
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -14,7 +17,37 @@ import (
 )
 
 // OutputPodSecurityGroups formats and outputs pod security group information
-func OutputPodSecurityGroups(w io.Writer, data []aws.PodSecurityGroupInfo, format string) error {
+func OutputPodSecurityGroups(w io.Writer, data []aws.PodSecurityGroupInfo, format string, sortField string) error {
+	sort.SliceStable(data, func(i, j int) bool {
+		switch sortField {
+		case "ip":
+			ipA := net.ParseIP(data[i].Pod.Status.PodIP)
+			ipB := net.ParseIP(data[j].Pod.Status.PodIP)
+			if ipA == nil || ipB == nil {
+				return data[i].Pod.Status.PodIP < data[j].Pod.Status.PodIP
+			}
+			return bytes.Compare(ipA, ipB) < 0
+		case "eni":
+			return data[i].ENI < data[j].ENI
+		case "attachment":
+			return data[i].AttachmentLevel < data[j].AttachmentLevel
+		case "sgids":
+			sgsI := make([]string, len(data[i].SecurityGroups))
+			for k, sg := range data[i].SecurityGroups {
+				sgsI[k] = awsSDK.ToString(sg.GroupId)
+			}
+			sgsJ := make([]string, len(data[j].SecurityGroups))
+			for k, sg := range data[j].SecurityGroups {
+				sgsJ[k] = awsSDK.ToString(sg.GroupId)
+			}
+			return strings.Join(sgsI, ",") < strings.Join(sgsJ, ",")
+		case "pod":
+			fallthrough
+		default:
+			return data[i].Pod.Name < data[j].Pod.Name
+		}
+	})
+
 	switch format {
 	case "json":
 		return outputJSON(w, data)

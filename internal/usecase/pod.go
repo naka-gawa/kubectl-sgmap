@@ -17,6 +17,7 @@ import (
 type PodOptions struct {
 	PodName       string
 	OutputFormat  string
+	SortField     string
 	AllNamespaces *bool
 	ConfigFlags   *genericclioptions.ConfigFlags
 	IOStreams     *genericclioptions.IOStreams
@@ -87,7 +88,7 @@ func (o *PodOptions) Run(ctx context.Context) error {
 		return nil
 	}
 
-	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat)
+	return output.OutputPodSecurityGroups(o.IOStreams.Out, result, o.OutputFormat, o.SortField)
 }
 
 func (o *PodOptions) getNamespace() (string, error) {
