@@ -3,7 +3,7 @@ kind: Plugin
 metadata:
   name: sgmap
 spec:
-  version: "v0.11.1"
+  version: "v0.12.0"
   homepage: https://github.com/naka-gawa/kubectl-sgmap
   shortDescription: "A kubectl plugin to visualize security group per pod."
   description: |
@@ -14,8 +14,8 @@ spec:
         matchLabels:
           os: darwin
           arch: arm64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.11.1/kubectl-sgmap_Darwin_arm64.tar.gz
-      sha256: 859c6c33e9705a061acb40e5b1055895ff8692a6bbd1becc6bcb7f2ddaba3f8f
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.12.0/kubectl-sgmap_Darwin_arm64.tar.gz
+      sha256: 1cd96660abb472522a579ad742fe1cc561b63c6d0cfd34be051940f17fab3566
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -26,8 +26,8 @@ spec:
         matchLabels:
           os: darwin
           arch: amd64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.11.1/kubectl-sgmap_Darwin_amd64.tar.gz
-      sha256: 8e9341e595ac28b4c5381468ee4a5bdb1de7300f3793011aaa9c22c02c7a6acf
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.12.0/kubectl-sgmap_Darwin_amd64.tar.gz
+      sha256: 3f5102c5401b533df2706c24c9bbe0d0bfc47fed5dae74cbefc658f07bb976b6
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -38,8 +38,8 @@ spec:
         matchLabels:
           os: linux
           arch: amd64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.11.1/kubectl-sgmap_Linux_amd64.tar.gz
-      sha256: ce5c105b073f8098704895b966e329f535e00a57a65ba35402e84978b35b4fa3
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.12.0/kubectl-sgmap_Linux_amd64.tar.gz
+      sha256: e5de1392359b66a0a6023f983dc4828cc8e346e3edd04f82aedd425235c3e5d6
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -50,8 +50,8 @@ spec:
         matchLabels:
           os: linux
           arch: arm64
-      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.11.1/kubectl-sgmap_Linux_arm64.tar.gz
-      sha256: 49a700ff88ee85c3ea1b1efae78666adf6b42f9f1a157a643c90a21e065c8562
+      uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/v0.12.0/kubectl-sgmap_Linux_arm64.tar.gz
+      sha256: 7669426c523fe329dcd4712c3809ef80822188be0b8ae9e1b1ef35d939a8d259
       files:
         - from: "kubectl-sgmap"
           to: "."
