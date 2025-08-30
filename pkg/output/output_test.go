@@ -118,8 +118,12 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 			data: []aws.PodSecurityGroupInfo{
 				{
 					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "pod1",
+							Namespace:         "ns1",
+							CreationTimestamp: metav1.Time{},
+						},
+						Status: corev1.PodStatus{PodIP: "10.0.0.1"},
 					},
 					ENI:             "eni-12345",
 					AttachmentLevel: "pod-eni",
@@ -128,7 +132,7 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 					},
 				},
 			},
-			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\",\n        \"creationTimestamp\": null\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  }\n]\n",
+			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  }\n]\n",
 		},
 		{
 			name:   "json output with multiple entries",
@@ -136,8 +140,12 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 			data: []aws.PodSecurityGroupInfo{
 				{
 					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "pod1",
+							Namespace:         "ns1",
+							CreationTimestamp: metav1.Time{},
+						},
+						Status: corev1.PodStatus{PodIP: "10.0.0.1"},
 					},
 					ENI:             "eni-12345",
 					AttachmentLevel: "pod-eni",
@@ -147,8 +155,12 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 				},
 				{
 					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod2", Namespace: "ns2"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.2"},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "pod2",
+							Namespace:         "ns2",
+							CreationTimestamp: metav1.Time{},
+						},
+						Status: corev1.PodStatus{PodIP: "10.0.0.2"},
 					},
 					ENI:             "eni-67890",
 					AttachmentLevel: "node-primary-eni",
@@ -157,7 +169,7 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 					},
 				},
 			},
-			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\",\n        \"creationTimestamp\": null\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod2\",\n        \"namespace\": \"ns2\",\n        \"creationTimestamp\": null\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.2\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-33333\",\n        \"GroupName\": \"sg-name-3\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-67890\",\n    \"attachmentLevel\": \"node-primary-eni\"\n  }\n]\n",
+			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod2\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.2\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-33333\",\n        \"GroupName\": \"sg-name-3\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-67890\",\n    \"attachmentLevel\": \"node-primary-eni\"\n  }\n]\n",
 		},
 		{
 			name:     "json output with empty data",

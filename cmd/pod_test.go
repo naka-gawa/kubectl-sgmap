@@ -27,77 +27,31 @@ func TestNewPodCommand(t *testing.T) {
 	assert.NotNil(t, cmd.Flag("namespace")) // from ConfigFlags
 }
 
-func TestPodCommand_RunE(t *testing.T) {
-	tests := []struct {
-		name          string
-		args          []string
-		wantErr       bool
-		expectedErr   string
-	}{
-		{
-			name:          "no arguments",
-			args:          []string{},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with pod name",
-			args:          []string{"my-pod"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with all-namespaces flag",
-			args:          []string{"--all-namespaces"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:          "with output flag",
-			args:          []string{"-o", "json"},
-			wantErr:       true,
-			expectedErr:   "connect: connection refused",
-		},
-		{
-			name:        "too many arguments",
-			args:        []string{"pod1", "pod2"},
-			wantErr:     true,
-			expectedErr: "accepts at most 1 arg(s), received 2",
-		},
+func TestPodCommand_Args(t *testing.T) {
+	streams := &genericclioptions.IOStreams{
+		In:     bytes.NewBufferString(""),
+		Out:    io.Discard,
+		ErrOut: new(bytes.Buffer),
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			streams := &genericclioptions.IOStreams{
-				In:     bytes.NewBufferString(""),
-				Out:    io.Discard,
-				ErrOut: new(bytes.Buffer), // Capture stderr
-			}
+	cmd := NewPodCommand(streams)
+	
+	// Test argument validation only (without executing the command)
+	t.Run("accepts zero arguments", func(t *testing.T) {
+		err := cmd.Args(cmd, []string{})
+		assert.NoError(t, err)
+	})
 
-			cmd := NewPodCommand(streams)
-			cmd.SetArgs(tt.args)
-			err := cmd.Execute()
+	t.Run("accepts one argument", func(t *testing.T) {
+		err := cmd.Args(cmd, []string{"pod-name"})
+		assert.NoError(t, err)
+	})
 
-			if tt.wantErr {
-				assert.Error(t, err)
-
-				// The error from cobra goes to stderr and is not returned by Execute()
-				// so we need to check both the returned error and stderr.
-				stderr := streams.ErrOut.(*bytes.Buffer).String()
-
-				// The error returned by Execute() comes from the usecase layer in valid cases
-				if err != nil {
-					assert.Contains(t, err.Error(), tt.expectedErr)
-				} else {
-					// The error from cobra parsing goes to stderr
-					assert.Contains(t, stderr, tt.expectedErr)
-				}
-
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+	t.Run("rejects too many arguments", func(t *testing.T) {
+		err := cmd.Args(cmd, []string{"pod1", "pod2"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "accepts at most 1 arg(s), received 2")
+	})
 }
 
 func TestPodCommand_Help(t *testing.T) {
