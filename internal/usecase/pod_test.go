@@ -186,3 +186,35 @@ func TestPodOptions_getNamespace(t *testing.T) {
 func stringPointer(s string) *string {
 	return &s
 }
+
+func BenchmarkPodOptions_Run(b *testing.B) {
+	k8sClient := &fakeK8sClient{
+		ListPodsFunc: func(ctx context.Context, namespace string) ([]corev1.Pod, error) {
+			return []corev1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{Name: "pod1"}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "pod2"}},
+			}, nil
+		},
+	}
+	awsClient := &fakeAWSClient{
+		FetchSecurityGroupsByPodsFunc: func(ctx context.Context, pods []corev1.Pod) ([]aws.PodSecurityGroupInfo, error) {
+			return []aws.PodSecurityGroupInfo{
+				{Pod: pods[0]},
+				{Pod: pods[1]},
+			}, nil
+		},
+	}
+	streams := &genericclioptions.IOStreams{
+		Out:    &bytes.Buffer{},
+		ErrOut: &bytes.Buffer{},
+	}
+	o := NewPodOptions(streams)
+	o.K8sClient = k8sClient
+	o.AWSClient = awsClient
+	o.ConfigFlags.Namespace = stringPointer("default")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = o.Run(context.Background())
+	}
+}

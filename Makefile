@@ -20,6 +20,16 @@ else
 	go test ./... -race -count=1
 endif
 
+coverage:
+	PKGS=$$(go list ./... | grep -v 'github.com/naka-gawa/kubectl-sgmap$$'); \
+	go test -race -coverprofile=coverage.out -covermode=atomic $$PKGS
+
+coverage-html: coverage
+	go tool cover -html=coverage.out -o coverage.html
+
+benchmark:
+	go test -bench=. -benchmem ./...
+
 $(PLUGIN_BIN): $(PLUGIN_DEPENDENCIES)
 	go build -o $(PLUGIN_BIN) ./main.go
 
