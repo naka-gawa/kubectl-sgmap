@@ -124,6 +124,65 @@ func TestPodOptions_Run(t *testing.T) {
 	}
 }
 
+func TestPodOptions_getNamespace(t *testing.T) {
+	testCases := []struct {
+		name              string
+		flags             *genericclioptions.ConfigFlags
+		allNamespaces     bool
+		expectedNamespace string
+		wantErr           bool
+	}{
+		{
+			name:              "default namespace",
+			flags:             genericclioptions.NewConfigFlags(true),
+			expectedNamespace: "default",
+		},
+		{
+			name: "namespace from flag",
+			flags: &genericclioptions.ConfigFlags{
+				Namespace: stringPointer("my-namespace"),
+			},
+			expectedNamespace: "my-namespace",
+		},
+		{
+			name:              "all namespaces",
+			flags:             genericclioptions.NewConfigFlags(true),
+			allNamespaces:     true,
+			expectedNamespace: "",
+		},
+		{
+			name: "all namespaces overrides namespace flag",
+			flags: &genericclioptions.ConfigFlags{
+				Namespace: stringPointer("my-namespace"),
+			},
+			allNamespaces:     true,
+			expectedNamespace: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			o := &PodOptions{
+				ConfigFlags:   tc.flags,
+				AllNamespaces: tc.allNamespaces,
+			}
+
+			// a fake kubeconfig is required to prevent error
+			o.ConfigFlags.KubeConfig = stringPointer("/dev/null")
+
+			ns, err := o.getNamespace()
+
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("getNamespace() error = %v, wantErr %v", err, tc.wantErr)
+			}
+
+			if ns != tc.expectedNamespace {
+				t.Errorf("getNamespace() = %q, want %q", ns, tc.expectedNamespace)
+			}
+		})
+	}
+}
+
 func stringPointer(s string) *string {
 	return &s
 }
