@@ -18,7 +18,7 @@ type PodOptions struct {
 	PodName       string
 	OutputFormat  string
 	SortField     string
-	AllNamespaces *bool
+	AllNamespaces bool
 	ConfigFlags   *genericclioptions.ConfigFlags
 	IOStreams     *genericclioptions.IOStreams
 	K8sClient     kubernetes.Interface
@@ -28,9 +28,8 @@ type PodOptions struct {
 // NewPodOptions creates new PodOptions with default values
 func NewPodOptions(streams *genericclioptions.IOStreams) *PodOptions {
 	return &PodOptions{
-		AllNamespaces: new(bool),
-		ConfigFlags:   genericclioptions.NewConfigFlags(true),
-		IOStreams:     streams,
+		ConfigFlags: genericclioptions.NewConfigFlags(true),
+		IOStreams:   streams,
 	}
 }
 
@@ -97,7 +96,7 @@ func (o *PodOptions) getNamespace() (string, error) {
 		return "", err
 	}
 
-	if o.AllNamespaces != nil && *o.AllNamespaces {
+	if o.AllNamespaces {
 		return "", nil
 	}
 

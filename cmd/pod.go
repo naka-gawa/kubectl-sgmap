@@ -48,7 +48,7 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|yaml|table)")
 	cmd.Flags().StringVar(&o.SortField, "sort", "pod", fmt.Sprintf("Specify the field to sort by (%s)", strings.Join(validSortFields, "|")))
-	cmd.Flags().BoolVarP(o.AllNamespaces, "all-namespaces", "A", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
+	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	o.ConfigFlags.AddFlags(cmd.Flags())
 
 	return cmd
