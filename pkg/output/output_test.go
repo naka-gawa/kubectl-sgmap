@@ -14,6 +14,10 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
 func TestOutputPodSecurityGroups(t *testing.T) {
 	unsortedData := []aws.PodSecurityGroupInfo{
 		{
@@ -32,7 +36,26 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 			},
 			ENI:             "eni-1",
 			AttachmentLevel: "node-primary-eni",
-			SecurityGroups:  []awsSDK.SecurityGroup{{GroupId: strPtr("sg-a")}},
+			SecurityGroups: []awsSDK.SecurityGroup{
+				{
+					GroupId:   strPtr("sg-a"),
+					GroupName: strPtr("sg-name-a"),
+					IpPermissions: []awsSDK.IpPermission{
+						{
+							IpProtocol: strPtr("tcp"),
+							FromPort:   int32Ptr(80),
+							ToPort:     int32Ptr(80),
+							IpRanges:   []awsSDK.IpRange{{CidrIp: strPtr("0.0.0.0/0")}},
+						},
+					},
+					IpPermissionsEgress: []awsSDK.IpPermission{
+						{
+							IpProtocol: strPtr("-1"),
+							IpRanges:   []awsSDK.IpRange{{CidrIp: strPtr("0.0.0.0/0")}},
+						},
+					},
+				},
+			},
 		},
 		{
 			Pod: corev1.Pod{
@@ -62,7 +85,6 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 		expected  string
 		wantErr   bool
 	}{
-		// Test cases will be added here
 		{
 			name:   "table output with single entry",
 			format: "table",
@@ -87,119 +109,21 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 			format:    "table",
 			sortField: "pod",
 			data:      unsortedData,
-			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
+			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a (sg-name-a)\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
 		},
 		{
 			name:      "json output with sorting",
 			format:    "json",
 			sortField: "pod",
 			data:      unsortedData,
-			expected:  "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-a\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-a\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-1\",\n    \"attachmentLevel\": \"node-primary-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-b\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.2\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-b\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-2\",\n    \"attachmentLevel\": \"trunk-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-c\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.3\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-c\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-3\",\n    \"attachmentLevel\": \"pod-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod-d\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.10\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-d\",\n        \"GroupName\": null,\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-4\",\n    \"attachmentLevel\": \"other\"\n  }\n]\n",
+			expected:  "[\n  {\n    \"podName\": \"pod-a\",\n    \"namespace\": \"ns1\",\n    \"podIP\": \"10.0.0.1\",\n    \"eni\": \"eni-1\",\n    \"attachmentLevel\": \"node-primary-eni\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-a\",\n        \"name\": \"sg-name-a\",\n        \"inboundRules\": [\n          {\n            \"protocol\": \"tcp\",\n            \"fromPort\": 80,\n            \"toPort\": 80,\n            \"sources\": [\n              \"0.0.0.0/0\"\n            ]\n          }\n        ],\n        \"outboundRules\": [\n          {\n            \"protocol\": \"-1\",\n            \"destinations\": [\n              \"0.0.0.0/0\"\n            ]\n          }\n        ]\n      }\n    ]\n  },\n  {\n    \"podName\": \"pod-b\",\n    \"namespace\": \"ns2\",\n    \"podIP\": \"10.0.0.2\",\n    \"eni\": \"eni-2\",\n    \"attachmentLevel\": \"trunk-eni\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-b\"\n      }\n    ]\n  },\n  {\n    \"podName\": \"pod-c\",\n    \"namespace\": \"ns1\",\n    \"podIP\": \"10.0.0.3\",\n    \"eni\": \"eni-3\",\n    \"attachmentLevel\": \"pod-eni\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-c\"\n      }\n    ]\n  },\n  {\n    \"podName\": \"pod-d\",\n    \"namespace\": \"ns2\",\n    \"podIP\": \"10.0.0.10\",\n    \"eni\": \"eni-4\",\n    \"attachmentLevel\": \"other\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-d\"\n      }\n    ]\n  }\n]\n",
 		},
 		{
 			name:      "yaml output with sorting",
 			format:    "yaml",
 			sortField: "pod",
 			data:      unsortedData,
-			expected: "- podName: pod-a\n  namespace: ns1\n  eni: eni-1\n  attachmentLevel: node-primary-eni\n  securityGroups:\n    - groupId: sg-a\n      groupName: \"\"\n- podName: pod-b\n  namespace: ns2\n  eni: eni-2\n  attachmentLevel: trunk-eni\n  securityGroups:\n    - groupId: sg-b\n      groupName: \"\"\n- podName: pod-c\n  namespace: ns1\n  eni: eni-3\n  attachmentLevel: pod-eni\n  securityGroups:\n    - groupId: sg-c\n      groupName: \"\"\n- podName: pod-d\n  namespace: ns2\n  eni: eni-4\n  attachmentLevel: other\n  securityGroups:\n    - groupId: sg-d\n      groupName: \"\"\n",
-		},
-		{
-			name:      "sort by ip address",
-			format:    "table",
-			sortField: "ip",
-			data:      unsortedData,
-			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
-		},
-		{
-			name:      "sort by eni id",
-			format:    "table",
-			sortField: "eni",
-			data:      unsortedData,
-			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
-		},
-		{
-			name:      "sort by attachment",
-			format:    "table",
-			sortField: "attachment",
-			data:      unsortedData,
-			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-d     10.0.0.10   eni-4   other             sg-d\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\n",
-		},
-		{
-			name:      "sort by sgids",
-			format:    "table",
-			sortField: "sgids",
-			data:      unsortedData,
-			expected:  "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT        SECURITY GROUPS\npod-a     10.0.0.1    eni-1   node-primary-eni  sg-a\npod-b     10.0.0.2    eni-2   trunk-eni         sg-b\npod-c     10.0.0.3    eni-3   pod-eni           sg-c\npod-d     10.0.0.10   eni-4   other             sg-d\n",
-		},
-		{
-			name:   "table output with multiple entries",
-			format: "table",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod2", Namespace: "ns2"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.2"},
-					},
-					ENI:             "eni-67890",
-					AttachmentLevel: "node-primary-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-33333"), GroupName: strPtr("sg-name-3")},
-					},
-				},
-			},
-			expected: "POD NAME  IP ADDRESS  ENI ID     ATTACHMENT        SECURITY GROUPS\npod1      10.0.0.1    eni-12345  pod-eni           sg-11111 (sg-name-1)\npod2      10.0.0.2    eni-67890  node-primary-eni  sg-33333 (sg-name-3)\n",
-		},
-		{
-			name:     "table output with empty data",
-			format:   "table",
-			data:     []aws.PodSecurityGroupInfo{},
-			expected: "POD NAME  IP ADDRESS  ENI ID  ATTACHMENT  SECURITY GROUPS\n",
-		},
-		{
-			name:   "table output with missing group name",
-			format: "table",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111")},
-					},
-				},
-			},
-			expected: "POD NAME  IP ADDRESS  ENI ID     ATTACHMENT  SECURITY GROUPS\npod1      10.0.0.1    eni-12345  pod-eni     sg-11111\n",
-		},
-		{
-			name:   "table output with missing pod ip",
-			format: "table",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-			},
-			expected: "POD NAME  IP ADDRESS  ENI ID     ATTACHMENT  SECURITY GROUPS\npod1                  eni-12345  pod-eni     sg-11111 (sg-name-1)\n",
+			expected: "- podName: pod-a\n  namespace: ns1\n  eni: eni-1\n  attachmentLevel: node-primary-eni\n  securityGroups:\n    - groupId: sg-a\n      groupName: sg-name-a\n- podName: pod-b\n  namespace: ns2\n  eni: eni-2\n  attachmentLevel: trunk-eni\n  securityGroups:\n    - groupId: sg-b\n      groupName: \"\"\n- podName: pod-c\n  namespace: ns1\n  eni: eni-3\n  attachmentLevel: pod-eni\n  securityGroups:\n    - groupId: sg-c\n      groupName: \"\"\n- podName: pod-d\n  namespace: ns2\n  eni: eni-4\n  attachmentLevel: other\n  securityGroups:\n    - groupId: sg-d\n      groupName: \"\"\n",
 		},
 		{
 			name:   "json output with single entry",
@@ -208,131 +132,30 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 				{
 					Pod: corev1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:              "pod1",
-							Namespace:         "ns1",
-							CreationTimestamp: metav1.Time{},
+							Name:      "pod1",
+							Namespace: "ns1",
 						},
 						Status: corev1.PodStatus{PodIP: "10.0.0.1"},
 					},
 					ENI:             "eni-12345",
 					AttachmentLevel: "pod-eni",
 					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-			},
-			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  }\n]\n",
-		},
-		{
-			name:   "json output with multiple entries",
-			format: "json",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              "pod1",
-							Namespace:         "ns1",
-							CreationTimestamp: metav1.Time{},
+						{
+							GroupId:   strPtr("sg-11111"),
+							GroupName: strPtr("sg-name-1"),
+							IpPermissions: []awsSDK.IpPermission{
+								{
+									IpProtocol: strPtr("tcp"),
+									FromPort:   int32Ptr(443),
+									ToPort:     int32Ptr(443),
+									IpRanges:   []awsSDK.IpRange{{CidrIp: strPtr("10.0.0.0/8")}},
+								},
+							},
 						},
-						Status: corev1.PodStatus{PodIP: "10.0.0.1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              "pod2",
-							Namespace:         "ns2",
-							CreationTimestamp: metav1.Time{},
-						},
-						Status: corev1.PodStatus{PodIP: "10.0.0.2"},
-					},
-					ENI:             "eni-67890",
-					AttachmentLevel: "node-primary-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-33333"), GroupName: strPtr("sg-name-3")},
 					},
 				},
 			},
-			expected: "[\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod1\",\n        \"namespace\": \"ns1\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.1\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-11111\",\n        \"GroupName\": \"sg-name-1\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\"\n  },\n  {\n    \"pod\": {\n      \"metadata\": {\n        \"name\": \"pod2\",\n        \"namespace\": \"ns2\"\n      },\n      \"spec\": {\n        \"containers\": null\n      },\n      \"status\": {\n        \"podIP\": \"10.0.0.2\"\n      }\n    },\n    \"securityGroups\": [\n      {\n        \"Description\": null,\n        \"GroupId\": \"sg-33333\",\n        \"GroupName\": \"sg-name-3\",\n        \"IpPermissions\": null,\n        \"IpPermissionsEgress\": null,\n        \"OwnerId\": null,\n        \"SecurityGroupArn\": null,\n        \"Tags\": null,\n        \"VpcId\": null\n      }\n    ],\n    \"eni\": \"eni-67890\",\n    \"attachmentLevel\": \"node-primary-eni\"\n  }\n]\n",
-		},
-		{
-			name:     "json output with empty data",
-			format:   "json",
-			data:     []aws.PodSecurityGroupInfo{},
-			expected: "[]\n",
-		},
-		{
-			name:   "yaml output with single entry",
-			format: "yaml",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-			},
-			expected: "- podName: pod1\n  namespace: ns1\n  eni: eni-12345\n  attachmentLevel: pod-eni\n  securityGroups:\n    - groupId: sg-11111\n      groupName: sg-name-1\n",
-		},
-		{
-			name:   "yaml output with multiple entries",
-			format: "yaml",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod2", Namespace: "ns2"},
-					},
-					ENI:             "eni-67890",
-					AttachmentLevel: "node-primary-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-33333"), GroupName: strPtr("sg-name-3")},
-					},
-				},
-			},
-			expected: "- podName: pod1\n  namespace: ns1\n  eni: eni-12345\n  attachmentLevel: pod-eni\n  securityGroups:\n    - groupId: sg-11111\n      groupName: sg-name-1\n- podName: pod2\n  namespace: ns2\n  eni: eni-67890\n  attachmentLevel: node-primary-eni\n  securityGroups:\n    - groupId: sg-33333\n      groupName: sg-name-3\n",
-		},
-		{
-			name:     "yaml output with empty data",
-			format:   "yaml",
-			data:     []aws.PodSecurityGroupInfo{},
-			expected: "[]\n",
-		},
-		{
-			name:   "invalid format should default to table",
-			format: "invalid-format",
-			data: []aws.PodSecurityGroupInfo{
-				{
-					Pod: corev1.Pod{
-						ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "ns1"},
-						Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
-					},
-					ENI:             "eni-12345",
-					AttachmentLevel: "pod-eni",
-					SecurityGroups: []awsSDK.SecurityGroup{
-						{GroupId: strPtr("sg-11111"), GroupName: strPtr("sg-name-1")},
-					},
-				},
-			},
-			expected: "POD NAME  IP ADDRESS  ENI ID     ATTACHMENT  SECURITY GROUPS\npod1      10.0.0.1    eni-12345  pod-eni     sg-11111 (sg-name-1)\n",
+			expected: "[\n  {\n    \"podName\": \"pod1\",\n    \"namespace\": \"ns1\",\n    \"podIP\": \"10.0.0.1\",\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-11111\",\n        \"name\": \"sg-name-1\",\n        \"inboundRules\": [\n          {\n            \"protocol\": \"tcp\",\n            \"fromPort\": 443,\n            \"toPort\": 443,\n            \"sources\": [\n              \"10.0.0.0/8\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]\n",
 		},
 	}
 

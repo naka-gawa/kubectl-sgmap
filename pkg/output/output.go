@@ -14,6 +14,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	awsSDK "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/naka-gawa/kubectl-sgmap/pkg/aws"
 )
 
@@ -60,10 +61,70 @@ func OutputPodSecurityGroups(w io.Writer, data []aws.PodSecurityGroupInfo, forma
 }
 
 // outputJSON outputs the data in JSON format
-func outputJSON(w io.Writer, data interface{}) error {
+func outputJSON(w io.Writer, data []aws.PodSecurityGroupInfo) error {
+	outputData := toMinimalOutput(data)
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(data)
+	return encoder.Encode(outputData)
+}
+
+// toMinimalOutput converts the full pod security group info into a minimal structure for output
+func toMinimalOutput(data []aws.PodSecurityGroupInfo) []PodOutput {
+	output := make([]PodOutput, 0, len(data))
+	for _, d := range data {
+		sgs := make([]SecurityGroupOutput, 0, len(d.SecurityGroups))
+		for _, sg := range d.SecurityGroups {
+			sgs = append(sgs, SecurityGroupOutput{
+				ID:            awsSDK.ToString(sg.GroupId),
+				Name:          sg.GroupName,
+				InboundRules:  toRuleOutput(sg.IpPermissions, true),
+				OutboundRules: toRuleOutput(sg.IpPermissionsEgress, false),
+			})
+		}
+		output = append(output, PodOutput{
+			PodName:         d.Pod.Name,
+			Namespace:       d.Pod.Namespace,
+			PodIP:           d.Pod.Status.PodIP,
+			ENI:             d.ENI,
+			AttachmentLevel: d.AttachmentLevel,
+			SecurityGroups:  sgs,
+		})
+	}
+	return output
+}
+
+func toRuleOutput(permissions []types.IpPermission, isInbound bool) []RuleOutput {
+	rules := make([]RuleOutput, 0, len(permissions))
+	for _, p := range permissions {
+		rule := RuleOutput{
+			Protocol: awsSDK.ToString(p.IpProtocol),
+			FromPort: p.FromPort,
+			ToPort:   p.ToPort,
+		}
+		if isInbound {
+			for _, ipRange := range p.IpRanges {
+				rule.Sources = append(rule.Sources, awsSDK.ToString(ipRange.CidrIp))
+			}
+			for _, ipv6Range := range p.Ipv6Ranges {
+				rule.Sources = append(rule.Sources, awsSDK.ToString(ipv6Range.CidrIpv6))
+			}
+			for _, userGroup := range p.UserIdGroupPairs {
+				rule.Sources = append(rule.Sources, awsSDK.ToString(userGroup.GroupId))
+			}
+		} else {
+			for _, ipRange := range p.IpRanges {
+				rule.Destinations = append(rule.Destinations, awsSDK.ToString(ipRange.CidrIp))
+			}
+			for _, ipv6Range := range p.Ipv6Ranges {
+				rule.Destinations = append(rule.Destinations, awsSDK.ToString(ipv6Range.CidrIpv6))
+			}
+			for _, userGroup := range p.UserIdGroupPairs {
+				rule.Destinations = append(rule.Destinations, awsSDK.ToString(userGroup.GroupId))
+			}
+		}
+		rules = append(rules, rule)
+	}
+	return rules
 }
 
 // outputYAML outputs the data in YAML format
