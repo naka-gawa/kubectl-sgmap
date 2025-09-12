@@ -35,6 +35,21 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 					return fmt.Errorf("invalid sort field: %s, valid fields are: %s", o.SortField, strings.Join(validSortFields, ", "))
 				}
 			}
+
+			if o.OutputFormat != "" {
+				validFormats := []string{"json", "yaml", "table", "json-minimal"}
+				isValid := false
+				for _, format := range validFormats {
+					if o.OutputFormat == format {
+						isValid = true
+						break
+					}
+				}
+				if !isValid {
+					return fmt.Errorf("invalid output format: %s, valid formats are: %s", o.OutputFormat, strings.Join(validFormats, ", "))
+				}
+			}
+
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -46,7 +61,7 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|yaml|table)")
+	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|json-minimal|yaml|table)")
 	cmd.Flags().StringVar(&o.SortField, "sort", "pod", fmt.Sprintf("Specify the field to sort by (%s)", strings.Join(validSortFields, "|")))
 	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	o.ConfigFlags.AddFlags(cmd.Flags())
