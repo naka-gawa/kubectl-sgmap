@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,6 +14,12 @@ import (
 
 var (
 	validSortFields = []string{"pod", "ip", "eni", "attachment", "sgids"}
+	validOutputFormats = map[string]struct{}{
+		"json":         {},
+		"yaml":         {},
+		"table":        {},
+		"json-minimal": {},
+	}
 )
 
 func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
@@ -37,16 +44,13 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 			}
 
 			if o.OutputFormat != "" {
-				validFormats := []string{"json", "yaml", "table", "json-minimal"}
-				isValid := false
-				for _, format := range validFormats {
-					if o.OutputFormat == format {
-						isValid = true
-						break
+				if _, ok := validOutputFormats[o.OutputFormat]; !ok {
+					formats := make([]string, 0, len(validOutputFormats))
+					for format := range validOutputFormats {
+						formats = append(formats, format)
 					}
-				}
-				if !isValid {
-					return fmt.Errorf("invalid output format: %s, valid formats are: %s", o.OutputFormat, strings.Join(validFormats, ", "))
+					sort.Strings(formats)
+					return fmt.Errorf("invalid output format: %s, valid formats are: %s", o.OutputFormat, strings.Join(formats, ", "))
 				}
 			}
 
