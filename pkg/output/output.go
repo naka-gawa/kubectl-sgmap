@@ -77,7 +77,7 @@ func outputJSONMinimal(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprint(w, string(b))
+	_, err = w.Write(b)
 	return err
 }
 
