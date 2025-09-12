@@ -157,6 +157,38 @@ func TestOutputPodSecurityGroups(t *testing.T) {
 			},
 			expected: "[\n  {\n    \"podName\": \"pod1\",\n    \"namespace\": \"ns1\",\n    \"podIP\": \"10.0.0.1\",\n    \"eni\": \"eni-12345\",\n    \"attachmentLevel\": \"pod-eni\",\n    \"securityGroups\": [\n      {\n        \"id\": \"sg-11111\",\n        \"name\": \"sg-name-1\",\n        \"inboundRules\": [\n          {\n            \"protocol\": \"tcp\",\n            \"fromPort\": 443,\n            \"toPort\": 443,\n            \"sources\": [\n              \"10.0.0.0/8\"\n            ]\n          }\n        ]\n      }\n    ]\n  }\n]\n",
 		},
+		{
+			name:   "json-minimal output with single entry",
+			format: "json-minimal",
+			data: []aws.PodSecurityGroupInfo{
+				{
+					Pod: corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod1",
+							Namespace: "ns1",
+						},
+						Status: corev1.PodStatus{PodIP: "10.0.0.1"},
+					},
+					ENI:             "eni-12345",
+					AttachmentLevel: "pod-eni",
+					SecurityGroups: []awsSDK.SecurityGroup{
+						{
+							GroupId:   strPtr("sg-11111"),
+							GroupName: strPtr("sg-name-1"),
+							IpPermissions: []awsSDK.IpPermission{
+								{
+									IpProtocol: strPtr("tcp"),
+									FromPort:   int32Ptr(443),
+									ToPort:     int32Ptr(443),
+									IpRanges:   []awsSDK.IpRange{{CidrIp: strPtr("10.0.0.0/8")}},
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: `[{"podName":"pod1","namespace":"ns1","podIP":"10.0.0.1","eni":"eni-12345","attachmentLevel":"pod-eni","securityGroups":[{"id":"sg-11111","name":"sg-name-1","inboundRules":[{"protocol":"tcp","fromPort":443,"toPort":443,"sources":["10.0.0.0/8"]}]}]}]`,
+		},
 	}
 
 	for _, tc := range testCases {

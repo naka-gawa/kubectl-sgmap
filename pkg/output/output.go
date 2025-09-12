@@ -53,6 +53,8 @@ func OutputPodSecurityGroups(w io.Writer, data []aws.PodSecurityGroupInfo, forma
 	switch format {
 	case "json":
 		return outputJSON(w, data)
+	case "json-minimal":
+		return outputJSONMinimal(w, data)
 	case "yaml":
 		return outputYAML(w, data)
 	default:
@@ -66,6 +68,17 @@ func outputJSON(w io.Writer, data []aws.PodSecurityGroupInfo) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(outputData)
+}
+
+// outputJSONMinimal outputs the data in minimal JSON format
+func outputJSONMinimal(w io.Writer, data []aws.PodSecurityGroupInfo) error {
+	outputData := toMinimalOutput(data)
+	b, err := json.Marshal(outputData)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
+	return err
 }
 
 // toMinimalOutput converts the full pod security group info into a minimal structure for output
