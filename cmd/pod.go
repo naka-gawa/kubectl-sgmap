@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,6 +14,12 @@ import (
 
 var (
 	validSortFields = []string{"pod", "ip", "eni", "attachment", "sgids"}
+	validOutputFormats = map[string]struct{}{
+		"json":         {},
+		"yaml":         {},
+		"table":        {},
+		"json-minimal": {},
+	}
 )
 
 func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
@@ -35,6 +42,18 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 					return fmt.Errorf("invalid sort field: %s, valid fields are: %s", o.SortField, strings.Join(validSortFields, ", "))
 				}
 			}
+
+			if o.OutputFormat != "" {
+				if _, ok := validOutputFormats[o.OutputFormat]; !ok {
+					formats := make([]string, 0, len(validOutputFormats))
+					for format := range validOutputFormats {
+						formats = append(formats, format)
+					}
+					sort.Strings(formats)
+					return fmt.Errorf("invalid output format: %s, valid formats are: %s", o.OutputFormat, strings.Join(formats, ", "))
+				}
+			}
+
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -46,7 +65,7 @@ func NewPodCommand(streams *genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|yaml|table)")
+	cmd.Flags().StringVarP(&o.OutputFormat, "output", "o", "", "output format (json|json-minimal|yaml|table)")
 	cmd.Flags().StringVar(&o.SortField, "sort", "pod", fmt.Sprintf("Specify the field to sort by (%s)", strings.Join(validSortFields, "|")))
 	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", false, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	o.ConfigFlags.AddFlags(cmd.Flags())
