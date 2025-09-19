@@ -25,7 +25,6 @@ spec:
         matchLabels:
           os: darwin
           arch: amd64
-      sha256: fea8adfa9f9ad8c264c055c02cafe3e894c0dc86f4816975eb29c0a6d223862e
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -37,7 +36,6 @@ spec:
         matchLabels:
           os: linux
           arch: amd64
-      sha256: c8c793dbf244c2c90f46464263a37625192271cc2695b4a77f93b7c77143677e
       files:
         - from: "kubectl-sgmap"
           to: "."
@@ -49,7 +47,6 @@ spec:
         matchLabels:
           os: linux
           arch: arm64
-      sha256: a1ce98a1d0ac0296fe7c6ae031e5d761b7f8809584491f46150a557ee4ae1313
       files:
         - from: "kubectl-sgmap"
           to: "."
