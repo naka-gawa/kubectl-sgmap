@@ -6,6 +6,9 @@ on:
     types:
       - completed
 
+permissions:
+  contents: write
+
 jobs:
   update-krew:
     runs-on: ubuntu-latest
