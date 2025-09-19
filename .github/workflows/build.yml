@@ -5,7 +5,7 @@ on:
     types: [published]
 
 jobs:
-  goreleaser:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
