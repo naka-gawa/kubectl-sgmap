@@ -20,11 +20,9 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.PRIVATE_KEY }}
 
-      - name: Semantic Release
+      - name: Create Release with semantic-release
         id: semantic
         uses: cycjimmy/semantic-release-action@9cc899c47e6841430bbaedb43de1560a568dfd16 # v5.0.0
-        with:
-          semantic_version: 19
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
