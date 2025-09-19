@@ -59,7 +59,11 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ steps.semantic.outputs.new_release_git_tag || steps.semantic.outputs.new_release_version }}
 
       - name: Update new version in krew-index
+        if: steps.semantic.outputs.new_release_published == 'true'
         uses: rajatjindal/krew-release-bot@3d9faef30a82761d610544f62afddca00993eef9 # v0.0.47
+        env:
+          GITHUB_REF: refs/tags/${{ steps.semantic.outputs.new_release_git_tag }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Download release assets
         if: steps.semantic.outputs.new_release_published == 'true'
