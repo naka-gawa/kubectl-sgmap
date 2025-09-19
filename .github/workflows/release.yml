@@ -6,186 +6,48 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # restricts the job to run only maintainers
     if: github.actor == 'naka-gawa'
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Generate GitHub App Token
+      - name: Generate token
         id: generate-token
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        uses: tibdex/github-app-token@v1
         with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
 
-      - name: Create Release with semantic-release
+      - name: Semantic Release
         id: semantic
-        uses: cycjimmy/semantic-release-action@9cc899c47e6841430bbaedb43de1560a568dfd16 # v5.0.0
+        uses: cycjimmy/semantic-release-action@v3
+        with:
+          semantic_version: 19
+          extra_plugins: |
+            @semantic-release/git
+            @semantic-release/changelog
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
-      - name: Set up Go
+      - name: Goreleaser
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: goreleaser/goreleaser-action@v4
         with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run GoReleaser
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
-        with:
-          distribution: goreleaser
           version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-          GORELEASER_CURRENT_TAG: ${{ steps.semantic.outputs.new_release_git_tag }}
 
-      - name: Update new version in krew-index
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: rajatjindal/krew-release-bot@3d9faef30a82761d610544f62afddca00993eef9 # v0.0.47
-        env:
-          GITHUB_REF: refs/tags/${{ steps.semantic.outputs.new_release_git_tag }}
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-
-      - name: Download release assets
+      - name: Save tag name
         if: steps.semantic.outputs.new_release_published == 'true'
         run: |
-          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
-          echo "Downloading checksums.txt for version ${VERSION}"
-          curl -s -L -o checksums.txt https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/checksums.txt
-          cat checksums.txt
+          echo ${{ steps.semantic.outputs.new_release_version }} > tag_name.txt
 
-      - name: Extract checksums
+      - name: Upload tag name
         if: steps.semantic.outputs.new_release_published == 'true'
-        id: checksums
-        run: |
-          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
-
-          # Extract checksums from the downloaded file
-          DARWIN_ARM64_SHA256=$(grep "kubectl-sgmap_Darwin_arm64.tar.gz" checksums.txt | awk '{print $1}')
-          DARWIN_AMD64_SHA256=$(grep "kubectl-sgmap_Darwin_x86_64.tar.gz" checksums.txt | awk '{print $1}')
-          LINUX_AMD64_SHA256=$(grep "kubectl-sgmap_Linux_x86_64.tar.gz" checksums.txt | awk '{print $1}')
-          LINUX_ARM64_SHA256=$(grep "kubectl-sgmap_Linux_arm64.tar.gz" checksums.txt | awk '{print $1}')
-
-          echo "DARWIN_ARM64_SHA256=${DARWIN_ARM64_SHA256}" >> $GITHUB_OUTPUT
-          echo "DARWIN_AMD64_SHA256=${DARWIN_AMD64_SHA256}" >> $GITHUB_OUTPUT
-          echo "LINUX_AMD64_SHA256=${LINUX_AMD64_SHA256}" >> $GITHUB_OUTPUT
-          echo "LINUX_ARM64_SHA256=${LINUX_ARM64_SHA256}" >> $GITHUB_OUTPUT
-
-          # debug echo
-          echo "Darwin ARM64: ${DARWIN_ARM64_SHA256}"
-          echo "Darwin AMD64: ${DARWIN_AMD64_SHA256}"
-          echo "Linux AMD64: ${LINUX_AMD64_SHA256}"
-          echo "Linux ARM64: ${LINUX_ARM64_SHA256}"
-
-      - name: Re-checkout repository for PR creation
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/upload-artifact@v4
         with:
-          ref: main
-          fetch-depth: 0
-      - name: Update Krew manifest
-        if: steps.semantic.outputs.new_release_published == 'true'
-        run: |
-          VERSION="v${{ steps.semantic.outputs.new_release_version }}"
-
-          cat > plugins/sgmap.yaml << EOF
-          apiVersion: krew.googlecontainertools.github.com/v1alpha2
-          kind: Plugin
-          metadata:
-            name: sgmap
-          spec:
-            version: "${VERSION}"
-            homepage: https://github.com/naka-gawa/kubectl-sgmap
-            shortDescription: "A kubectl plugin to visualize security group per pod."
-            description: |
-              A kubectl plugin to visualize security group per pod.
-              This plugin provides a command to generate a security group map for pods in a Kubernetes cluster.
-            platforms:
-              - selector:
-                  matchLabels:
-                    os: darwin
-                    arch: arm64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Darwin_arm64.tar.gz
-                sha256: ${{ steps.checksums.outputs.DARWIN_ARM64_SHA256 }}
-                files:
-                  - from: "kubectl-sgmap"
-                    to: "."
-                  - from: "LICENSE"
-                    to: "."
-                bin: "./kubectl-sgmap"
-              - selector:
-                  matchLabels:
-                    os: darwin
-                    arch: amd64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Darwin_amd64.tar.gz
-                sha256: ${{ steps.checksums.outputs.DARWIN_AMD64_SHA256 }}
-                files:
-                  - from: "kubectl-sgmap"
-                    to: "."
-                  - from: "LICENSE"
-                    to: "."
-                bin: "./kubectl-sgmap"
-              - selector:
-                  matchLabels:
-                    os: linux
-                    arch: amd64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Linux_amd64.tar.gz
-                sha256: ${{ steps.checksums.outputs.LINUX_AMD64_SHA256 }}
-                files:
-                  - from: "kubectl-sgmap"
-                    to: "."
-                  - from: "LICENSE"
-                    to: "."
-                bin: "./kubectl-sgmap"
-              - selector:
-                  matchLabels:
-                    os: linux
-                    arch: arm64
-                uri: https://github.com/naka-gawa/kubectl-sgmap/releases/download/${VERSION}/kubectl-sgmap_Linux_arm64.tar.gz
-                sha256: ${{ steps.checksums.outputs.LINUX_ARM64_SHA256 }}
-                files:
-                  - from: "kubectl-sgmap"
-                    to: "."
-                  - from: "LICENSE"
-                    to: "."
-                bin: "./kubectl-sgmap"
-          EOF
-
-      - name: Create Pull Request
-        if: steps.semantic.outputs.new_release_published == 'true'
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
-        with:
-          add-paths: plugins/sgmap.yaml
-          base: main
-          body: |
-            This PR updates the Krew plugin manifest in `plugins/sgmap.yaml` with:
-            - Version: `v${{ steps.semantic.outputs.new_release_version }}`
-            - SHA256 checksums from GoReleaser manifest:
-
-            | Platform       | SHA256 Checksum                                      |
-            |----------------|------------------------------------------------------|
-            | Darwin ARM64   | `${{ steps.checksums.outputs.DARWIN_ARM64_SHA256 }}` |
-            | Darwin AMD64   | `${{ steps.checksums.outputs.DARWIN_AMD64_SHA256 }}` |
-            | Linux AMD64    | `${{ steps.checksums.outputs.LINUX_AMD64_SHA256 }}`  |
-            | Linux ARM64    | `${{ steps.checksums.outputs.LINUX_ARM64_SHA256 }}`  |
-
-            This PR is automatically generated by the release workflow.
-          branch: update-krew-manifest-v${{ steps.semantic.outputs.new_release_version }}
-          branch-suffix: timestamp
-          commit-message: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
-          delete-branch: true
-          draft: false
-          reviewers: ${{ github.actor }}
-          sign-commits: true
-          title: "docs(krew): Update Krew manifest to v${{ steps.semantic.outputs.new_release_version }}"
-          token: ${{ steps.generate-token.outputs.token }}
+          name: tag-name
+          path: tag_name.txt
