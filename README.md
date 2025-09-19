@@ -32,19 +32,16 @@ Project `sgmap` is distributed as a kubectl plugin, and is available from the fo
 
 1. **Install krew**: Follow the [official krew installation guide](https://krew.sigs.k8s.io/docs/user-guide/setup/install/) to set up the plugin manager.
 
-2. **Add the custom plugin index**: This command adds the `kubectl-sgmap` repository as a new plugin index for krew.
-```bash
-kubectl krew index add sgmap-repo https://github.com/naka-gawa/kubectl-sgmap.git
-```
+1. **Install the plugin**: Now you can install the `sgmap` plugin from the newly added index.
 
-3. **Install the plugin**: Now you can install the `sgmap` plugin from the newly added index.
 ```bash
-kubectl krew install sgmap-repo/sgmap
+kubectl krew install sgmap
 ```
 
 ### Go Install
 
 If you have a Go environment configured, you can install the plugin with the following command:
+
 ```bash
 go install github.com/naka-gawa/kubectl-sgmap@latest
 ```
@@ -54,15 +51,18 @@ go install github.com/naka-gawa/kubectl-sgmap@latest
 To build and install the plugin from the source code, follow these steps:
 
 1. **Clone the repository**:
+
 ```bash
 git clone https://github.com/naka-gawa/kubectl-sgmap.git
 ```
 
-2. **Build and install**:
+1. **Build and install**:
+
 ```bash
 cd kubectl-sgmap
 make install
 ```
+
 This will build the `kubectl-sgmap` binary and move it to a directory in your `$PATH`.
 
 ## Usage
@@ -81,35 +81,44 @@ kubectl sgmap <subcommand> [flags]
 ### Examples
 
 **List security groups for all pods in the current namespace:**
+
 ```bash
 kubectl sgmap pod
 ```
 
 **List security groups for all pods in a specific namespace:**
+
 ```bash
 kubectl sgmap pod -n <namespace>
 ```
-*Example Output:*
-```
-POD NAME                  IP ADDRESS       ENI ID                  SECURITY GROUP IDS
-xxxxx-123455678-12345     192.168.1.1      eni-123456789abcdefgh   [sg-0123456789abcdefg]
-xxxxx-123455678-12346     192.168.10.9     eni-123456789abcdefgh   [sg-0123456789abcdefg]
+
+_Example Output:_
+
+```bash
+POD NAME                IP ADDRESS      ENI ID                 ATTACHMENT  SECURITY GROUPS
+xxx-123456789a-bcdef    192.168.1.236   eni-0c0f7a43a68c51492  pod         sg-12345678901234567 (xxx)
+xxx-abcfefghik-12345    192.168.1.220   eni-08b02992896fbb51d  node        sg-09876543210987654 (xxx)
 ~snip~
 ```
 
 **List security groups for a specific pod:**
+
 ```bash
 kubectl sgmap pod <pod-name> -n <namespace>
 ```
 
 **List security groups for all pods in all namespaces:**
+
 ```bash
 kubectl sgmap pod -A
 ```
 
 **Output in JSON or YAML format:**
+
 ```bash
 kubectl sgmap pod -n <namespace> -o json
+or
+kubectl sgmap pod -n <namespace> -o yaml
 ```
 
 The plugin supports all standard `kubectl` flags like `--namespace`, `--context`, and `--kubeconfig`.
