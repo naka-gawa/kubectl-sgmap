@@ -33,7 +33,7 @@ jobs:
           private_key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Update Krew Index
-        uses: rajatjindal/krew-release-bot@v0.0.43
+        uses: rajatjindal/krew-release-bot@v0.0.47
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           GITHUB_REF: refs/tags/${{ steps.tag.outputs.name }}
