@@ -2,7 +2,7 @@ module github.com/naka-gawa/kubectl-sgmap
 
 go 1.24.0
 
-toolchain go1.25.4
+toolchain go1.25.5
 
 require (
 	github.com/spf13/cobra v1.10.1
