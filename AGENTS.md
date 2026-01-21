@@ -49,7 +49,7 @@ The plugin helps DevOps engineers, platform teams, and security professionals un
 
 ### Prerequisites
 
-- Go 1.24 or later
+- Go 1.25 or later
 - kubectl v1.31 or newer
 - AWS CLI configured with appropriate permissions
 - Access to an EKS cluster with Security Groups for Pods enabled
