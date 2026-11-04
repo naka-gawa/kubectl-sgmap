@@ -1,0 +1,76 @@
+name: Approve automated PRs
+
+# Auto-approves automated (bot) PRs as the code owner so the required code-owner
+# review (.github/CODEOWNERS) is satisfied and auto-merge can proceed.
+#
+# This is the CLIENT half of the csm-actions/approve-pr-action Client/Server
+# model: it never holds the approving token. It asks the server repository
+# (approve-pr-server) to approve, and the server validates the PR and approves
+# it with the code owner's PAT, which lives only in that server repo.
+#
+# WHO gets approved is the single source of truth in the server repo
+# (approve-pr-server/.github/approve-pr.yaml). The action validates the committer
+# on BOTH sides, so this workflow fetches that same list at runtime instead of
+# keeping a second copy here.
+#
+# Requires in this repository:
+#   - vars.APPROVE_PR_APP_ID       (the shared approver GitHub App: issues:write on
+#                                   the server repo, pull requests/contents:read)
+#   - secrets.APPROVE_PR_PRIVATE_KEY
+# See approve-pr-server/README.md and its onboard-client-repo skill for setup.
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  approve:
+    # Also skip until the approver App is configured (APPROVE_PR_APP_ID unset).
+    if: >-
+      github.event.pull_request.user.type == 'Bot' &&
+      vars.APPROVE_PR_APP_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Generate approver App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ vars.APPROVE_PR_APP_ID }}
+          private-key: ${{ secrets.APPROVE_PR_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: approve-pr-server
+          # This token only reads .github/approve-pr.yaml from the server repo,
+          # so scope it to contents:read instead of inheriting the App
+          # installation's full permissions.
+          permission-contents: read
+
+      - name: Load allowed committers for this repo (single source of truth in the server repo)
+        id: config
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          {
+            echo 'allowed_committers<<EOF'
+            gh api "repos/${{ github.repository_owner }}/approve-pr-server/contents/.github/approve-pr.yaml" \
+              -H 'Accept: application/vnd.github.raw' \
+              | yq '.[env(REPO)][]' -
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: csm-actions/approve-pr-action@a8fdc60ab4d9b446694140534bbcc71c29fb499c # v1.0.0
+        with:
+          pull_request_number: ${{ github.event.pull_request.number }}
+          app_id: ${{ vars.APPROVE_PR_APP_ID }}
+          app_private_key: ${{ secrets.APPROVE_PR_PRIVATE_KEY }}
+          server_repository_name: approve-pr-server
+          allowed_committers: ${{ steps.config.outputs.allowed_committers }}
