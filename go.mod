@@ -8,7 +8,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/cli-runtime v0.37.1
+	k8s.io/cli-runtime v0.37.2
 )
 
 require (
